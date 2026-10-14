@@ -1,4 +1,4 @@
-# 🐭 Ratón Bento Box (Bento Box Master)
+# 🐭 [Ratón Bento Box](https://coiponorte.github.io/Raton-Bento-Box/)
 
 ![Stack](https://img.shields.io/badge/React_19-TypeScript-61dafb?logo=react&logoColor=white)
 ![Build](https://img.shields.io/badge/Vite_7-Tailwind_4-a855f7?logo=vite&logoColor=white)
@@ -46,34 +46,9 @@ Un juego acogedor y ultra relajante de organización donde preparas cajas bento 
 - **Tarjeta de pedido**: muestra qué ingredientes o colores solicita el cliente mediante iconos visuales. Naranja indica pendiente, verde indica completado.
 - **Regla Goshiki (5 colores)**: rojo, amarillo, verde, blanco y negro. Un medidor de 5 puntitos se enciende a medida que los incluyes, otorgando bonificación especial al cerrar la caja con la armonía completa.
 - **Encaje perfecto de compartimento**: al completar un compartimento individual se produce un destello dorado y repique de campanita.
-### Modos de juego
-
-| Modo | Descripción | Desbloqueo |
-| --- | --- | --- |
-| 🧘 **Zen** | Sin límite de tiempo. Pura organización y ASMR. | Desde el inicio |
-| ⏱️ **Servicio del día** | Los 24 niveles contrarreloj, con barra ultrafina de 5 px arriba que se vuelve roja en los últimos 10 segundos. | Nivel 3 |
-| ♾️ **Carrera** | **Cajas infinitas generadas proceduralmente.** El reloj nunca se detiene: cada bento servido hereda el tiempo sobrante más un bonus que mengua con las rondas. Las cajas crecen de 4×3 hasta 8×7. Guarda récord de bentos servidos y de puntos. | Nivel 2 |
-
-### 24 niveles de campaña
-
-Tres temporadas de 8 niveles: 16 cajas artesanales y 8 **Retos del chef**
-seleccionados con semillas fijas. La progresión va desde una caja 4×3 de
-cinco piezas hasta **La mesa de Mochi**, un desafío experto de 8×7.
-Todas las teselaciones están verificadas celda a celda: cada nivel tiene
-solución exacta sin huecos ni solapes.
-
-### Generación procedural (modo Carrera)
-
-El generador (`src/game/generator.ts`) **nunca produce una caja imposible**,
-porque construye el puzzle al revés:
-
-1. Parte la rejilla en compartimentos rectangulares mediante división recursiva con semilla.
-2. Tesela cada compartimento con piezas reales por *backtracking* (siempre existe la pieza 1×1 como último recurso).
-3. La bandeja nace de esa teselación, así que la solución está garantizada.
-4. El pedido del cliente se construye con las piezas que realmente hay en la caja.
-
-Verificado con 400 cajas aleatorias: **400/400 perfectas y resolubles**.
-Con la misma semilla sale exactamente la misma caja.
+- **Modos de juego**:
+  - **Modo Zen**: sin límite de tiempo, relajación total.
+  - **Servicio del día**: modo contrarreloj con barra de tiempo ultra-fina en el borde superior (roja en los últimos 10 segundos).
 
 ---
 
@@ -84,56 +59,6 @@ Dibujado 100% en SVG vectorial interactivo:
 - Bigotes, hocico y dientecito de ratón característico.
 - Delantal de cocina y cinta hachimaki roja tradicional.
 - Reacciones en vivo: parpadea de forma natural, sonríe, se preocupa con movimientos erróneos y alza sus patitas celebrando cuando completas la caja.
-
----
-
-## 🚀 Despliegue automático en un clic (`deploy.bat`)
-
-El archivo **`deploy.bat`** automatiza el ciclo completo para Windows.
-Es **autocontenido** (no necesita ningún otro archivo), no usa `goto` ni
-paréntesis dentro de bloques `if`, y guarda finales de línea CRLF:
-
-1. Comprueba Node.js y npm.
-2. Comprueba Git, inicializa el repo y apunta `origin` a `https://github.com/CoipoNorte/Raton-Bento-Box.git` (rama `main`).
-3. Crea el `.gitignore` si no existe.
-4. Agrega los scripts `"predeploy": "npm run build"` y `"deploy": "gh-pages -d dist"` a `package.json` con `node -e`.
-5. Fija `base: '/Raton-Bento-Box/'` en `vite.config.ts`.
-6. `npm install` e instala **`gh-pages`** como dependencia de desarrollo.
-7. `npm run build` generando la carpeta `dist` (y la verifica).
-8. `git add -A` + `git commit` automático **solo si hay cambios**.
-9. `git push -u origin main` subiendo todo el código fuente.
-10. `npm run deploy` publicando `dist` en la rama `gh-pages` (con reintento vía `npx gh-pages -d dist`).
-11. Verifica la rama `gh-pages` remota y muestra el resumen final.
-
-### Para ejecutarlo:
-Solo haz doble clic sobre **`deploy.bat`** o ejecútalo en la terminal:
-```cmd
-deploy.bat
-```
-
-> **Configuración en GitHub (solo la primera vez):**
-> Ve a `Settings` > `Pages` en el repositorio:
-> - **Source**: `Deploy from a branch`
-> - **Branch**: `gh-pages` / `(root)`
-> - Pulsa **Save**. En un par de minutos estará disponible en `https://coiponorte.github.io/Raton-Bento-Box/`.
-
----
-
-## 🛠️ Desarrollo local
-
-```bash
-# 1. Instalar dependencias
-npm install
-
-# 2. Servidor de desarrollo local
-npm run dev
-
-# 3. Compilar para producción
-npm run build
-
-# 4. Vista previa de producción
-npm run preview
-```
 
 ---
 
@@ -155,10 +80,9 @@ npm run preview
     ├── main.tsx           # Punto de entrada de React
     ├── game/
     │   ├── balance.ts     # Puntuaciones, bonos y umbrales de estrellas
-    │   ├── generator.ts   # Cajas procedurales del modo Carrera
     │   ├── ingredients.ts # Catálogo de 13 ingredientes con formas y goshiki
     │   ├── layout.ts      # Geometría exacta de la caja (cero desbordes)
-    │   ├── levels.ts      # Campaña teselada de 24 niveles
+    │   ├── levels.ts      # Definición teselada de los 8 niveles
     │   ├── logic.ts       # Poliominós, rotación, validación e imán
     │   ├── sound.ts       # Motor de audio ASMR WebAudio 100% sintetizado
     │   ├── storage.ts     # Persistencia local con respaldo en memoria
@@ -177,11 +101,10 @@ npm run preview
     │   ├── PieceTray.tsx  # Bandeja con scroll nativo y slots uniformes
     │   └── Sakura.tsx     # Partículas de pétalos de cerezo
     └── screens/
-        ├── CareerEnd.tsx    # Resumen y récords del modo Carrera
         ├── GameScreen.tsx   # Pantalla principal con los tres modos de layout
-        ├── LevelSelect.tsx  # Carta scrolleable de los 24 bentos
+        ├── LevelSelect.tsx  # Selector con miniaturas de los bentos
         ├── ResultScreen.tsx # Ceremonia de cierre ASMR y puntuación
-        └── StartScreen.tsx  # Portada con selector de modo y Carrera
+        └── StartScreen.tsx  # Portada con selector de modo Zen / Servicio
 ```
 
 ---
