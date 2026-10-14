@@ -114,7 +114,13 @@ export interface Progreso {
   estrellas: Record<number, number>;
   nivelMax: number;
   puntosTotales: number;
+  /** Récords del modo Carrera. */
+  mejorRondaCarrera: number;
+  mejorPuntosCarrera: number;
 }
+
+/** Modos de juego disponibles. */
+export type ModoJuego = "zen" | "servicio" | "carrera";
 
 /** Preferencias de sonido y modo. */
 export interface Preferencias {

@@ -1,7 +1,10 @@
 /**
- * Mascot — «Mochi», el RATÓN chef.
- * Dibujado en SVG y reactivo en vivo: orejas grandes, dientecito,
- * cola con lazo, parpadeo natural, celebración y preocupación.
+ * Mascot — «Mochi», el ratoncito chef. (｡•ᴗ•｡)
+ *
+ * Proporción chibi: cabeza grande, cuerpecito pequeño. Orejas redondas
+ * siempre visibles, gorrito de chef ladeado, ojos enormes con doble
+ * brillo, nariz de corazón, boquita «w», mejillas sonrojadas, colita en
+ * espiral y patitas que amasan. Todo procedural en SVG.
  */
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -14,19 +17,27 @@ interface Props {
   className?: string;
 }
 
+const PELO_SOMBRA = "#e6d8c6";
+const ROSA = "#f7bcca";
+const ROSA_FUERTE = "#ef93ad";
+const OSCURO = "#473c34";
+
 export function Mascot({ humor, size = 96, className }: Props) {
   const reduce = useReducedMotion();
   const [parpado, setParpado] = useState(false);
 
-  // Parpadeo natural: intervalos ligeramente aleatorios.
+  // Parpadeo natural con intervalos irregulares.
   useEffect(() => {
     let t1: number, t2: number;
     const ciclo = () => {
-      t1 = window.setTimeout(() => {
-        setParpado(true);
-        t2 = window.setTimeout(() => setParpado(false), 140);
-        ciclo();
-      }, 2200 + Math.random() * 2400);
+      t1 = window.setTimeout(
+        () => {
+          setParpado(true);
+          t2 = window.setTimeout(() => setParpado(false), 130);
+          ciclo();
+        },
+        2400 + Math.random() * 2600,
+      );
     };
     ciclo();
     return () => {
@@ -35,130 +46,252 @@ export function Mascot({ humor, size = 96, className }: Props) {
     };
   }, []);
 
-  const ojosCerrados = parpado || humor === "feliz" || humor === "celebrando";
+  const feliz = humor === "feliz" || humor === "celebrando";
+  const ojosCerrados = parpado || feliz;
 
-  const animacion = reduce
+  const animCuerpo = reduce
     ? {}
     : humor === "celebrando"
-      ? { y: [0, -12, 0], rotate: [0, -5, 5, 0] }
+      ? { y: [0, -10, 0], rotate: [0, -4, 4, 0] }
       : humor === "preocupado"
-        ? { x: [0, -1.5, 1.5, 0] }
-        : { y: [0, -3.5, 0] };
-  const transicion = reduce
+        ? { x: [0, -1.6, 1.6, 0] }
+        : { y: [0, -3, 0] };
+
+  const transCuerpo = reduce
     ? { duration: 0 }
     : humor === "celebrando"
-      ? { duration: 0.7, repeat: Infinity, ease: "easeInOut" as const }
-      : { duration: 2.8, repeat: Infinity, ease: "easeInOut" as const };
+      ? { duration: 0.65, repeat: Infinity, ease: "easeInOut" as const }
+      : humor === "preocupado"
+        ? { duration: 0.5, repeat: Infinity, ease: "easeInOut" as const }
+        : { duration: 3, repeat: Infinity, ease: "easeInOut" as const };
 
   return (
     <motion.svg
-      viewBox="0 0 120 124"
+      viewBox="0 0 132 140"
       width={size}
-      height={(size * 124) / 120}
+      height={(size * 140) / 132}
       className={className}
-      animate={animacion}
-      transition={transicion}
+      animate={animCuerpo}
+      transition={transCuerpo}
       role="img"
-      aria-label="Mochi, el ratón chef"
+      aria-label="Mochi, el ratoncito chef"
+      style={{ overflow: "visible" }}
     >
-      {/* cola con lazo, por detrás del cuerpo */}
-      <path
-        d="M 22 112 C 2 112 -2 92 12 86"
-        stroke="#c9b3a2"
-        strokeWidth={7}
+      <defs>
+        <radialGradient id="mochiPelo" cx="38%" cy="30%" r="80%">
+          <stop offset="0%" stopColor="#fffdf8" />
+          <stop offset="100%" stopColor="#f6ece0" />
+        </radialGradient>
+        <radialGradient id="mochiOreja" cx="50%" cy="42%" r="62%">
+          <stop offset="0%" stopColor="#fdd9e2" />
+          <stop offset="100%" stopColor={ROSA} />
+        </radialGradient>
+      </defs>
+
+      {/* ---------- CUERPECITO (detrás de la cabeza) ---------- */}
+      {/* Colita en espiral */}
+      <motion.path
+        d="M 96 120 C 116 124 124 108 112 102 C 104 98 100 106 105 110"
+        stroke={PELO_SOMBRA}
+        strokeWidth={5}
         strokeLinecap="round"
         fill="none"
+        animate={reduce ? {} : { rotate: [0, 7, -7, 0] }}
+        transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+        style={{ transformOrigin: "96px 120px" }}
       />
-      <circle cx={12} cy={86} r={4.5} fill="#e8a0b4" />
+      <ellipse cx={66} cy={110} rx={30} ry={25} fill="url(#mochiPelo)" stroke={PELO_SOMBRA} strokeWidth={3} />
 
-      {/* orejas grandes de ratón */}
-      <circle cx={29} cy={26} r={18} fill="#e4d6c6" stroke="#c3ad96" strokeWidth={2.5} />
-      <circle cx={91} cy={26} r={18} fill="#e4d6c6" stroke="#c3ad96" strokeWidth={2.5} />
-      <circle cx={30} cy={27} r={10.5} fill="#f3b8c4" />
-      <circle cx={90} cy={27} r={10.5} fill="#f3b8c4" />
-
-      {/* cuerpo-cabeza redondito */}
-      <ellipse cx={60} cy={72} rx={41} ry={44} fill="#f4ece1" stroke="#d9c8b2" strokeWidth={3} />
-
-      {/* hachimaki roja */}
-      <path d="M 22 46 Q 60 32 98 46 L 98 55 Q 60 41 22 55 Z" fill="#c0392b" />
-      <circle cx={60} cy={41.5} r={5.5} fill="#f7f1e3" />
-
-      {/* hocico claro */}
-      <ellipse cx={60} cy={80} rx={17} ry={13} fill="#faf3e7" />
-
-      {/* bigotes: seis hilos finos */}
-      <g stroke="#cbb8a0" strokeWidth={2.2} strokeLinecap="round">
-        <path d="M 30 74 q -12 -4 -20 -8" />
-        <path d="M 30 80 q -13 0 -22 2" />
-        <path d="M 30 86 q -11 4 -18 9" />
-        <path d="M 90 74 q 12 -4 20 -8" />
-        <path d="M 90 80 q 13 0 22 2" />
-        <path d="M 90 86 q 11 4 18 9" />
+      {/* Piececitos, siempre abajo */}
+      <g fill="url(#mochiPelo)" stroke={PELO_SOMBRA} strokeWidth={2.6}>
+        <ellipse cx={53} cy={131} rx={10} ry={6.5} />
+        <ellipse cx={79} cy={131} rx={10} ry={6.5} />
       </g>
 
-      {/* ojos según humor */}
+      {/* Manitas: arriba al celebrar, amasando en reposo */}
+      {humor === "celebrando" ? (
+        <g fill="url(#mochiPelo)" stroke={PELO_SOMBRA} strokeWidth={2.6}>
+          <motion.circle
+            cx={24}
+            cy={72}
+            r={9.5}
+            animate={reduce ? {} : { y: [0, -7, 0] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+          />
+          <motion.circle
+            cx={108}
+            cy={72}
+            r={9.5}
+            animate={reduce ? {} : { y: [0, -7, 0] }}
+            transition={{ duration: 0.5, repeat: Infinity, delay: 0.25 }}
+          />
+        </g>
+      ) : (
+        <g fill="url(#mochiPelo)" stroke={PELO_SOMBRA} strokeWidth={2.6}>
+          <motion.circle
+            cx={36}
+            cy={105}
+            r={9}
+            animate={reduce ? {} : { y: [0, -3.5, 0] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.circle
+            cx={96}
+            cy={105}
+            r={9}
+            animate={reduce ? {} : { y: [0, -3.5, 0] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+          />
+        </g>
+      )}
+
+      {/* Delantal redondeado con bolsillo de corazón */}
+      <path
+        d="M 48 96 Q 66 90 84 96 Q 88 116 80 128 Q 66 134 52 128 Q 44 116 48 96 Z"
+        fill="#fbf5e6"
+        stroke="#e3d3ad"
+        strokeWidth={2.5}
+        strokeLinejoin="round"
+      />
+      <path
+        d="M 66 112 c -2.6 -3.4 -7.6 -2.6 -7.6 1.3 c 0 3 4.3 5.1 7.6 7.3 c 3.3 -2.2 7.6 -4.3 7.6 -7.3 c 0 -3.9 -5 -4.7 -7.6 -1.3 Z"
+        fill={ROSA}
+        opacity={0.75}
+      />
+
+      {/* ---------- OREJAS (visibles, nada las tapa) ---------- */}
+      <motion.g
+        animate={reduce ? {} : { rotate: feliz ? [-5, 5, -5] : [-1.5, 1.5, -1.5] }}
+        transition={{ duration: feliz ? 0.8 : 3.4, repeat: Infinity, ease: "easeInOut" }}
+        style={{ transformOrigin: "26px 40px" }}
+      >
+        <circle cx={24} cy={34} r={19} fill="url(#mochiPelo)" stroke={PELO_SOMBRA} strokeWidth={3} />
+        <circle cx={25} cy={35} r={11.5} fill="url(#mochiOreja)" />
+      </motion.g>
+      <motion.g
+        animate={reduce ? {} : { rotate: feliz ? [5, -5, 5] : [1.5, -1.5, 1.5] }}
+        transition={{ duration: feliz ? 0.8 : 3.4, repeat: Infinity, ease: "easeInOut" }}
+        style={{ transformOrigin: "106px 40px" }}
+      >
+        <circle cx={108} cy={34} r={19} fill="url(#mochiPelo)" stroke={PELO_SOMBRA} strokeWidth={3} />
+        <circle cx={107} cy={35} r={11.5} fill="url(#mochiOreja)" />
+      </motion.g>
+
+      {/* ---------- CABEZA GRANDE ---------- */}
+      <ellipse cx={66} cy={62} rx={41} ry={37} fill="url(#mochiPelo)" stroke={PELO_SOMBRA} strokeWidth={3} />
+
+      {/* Gorrito de chef ladeado, apoyado entre las orejas */}
+      <g transform="rotate(-9 66 28)">
+        <path
+          d="M 48 34 C 41 34 38 26 44 22 C 42 14 51 9 57 13 C 61 6 73 6 77 13 C 84 9 92 15 90 22 C 96 26 92 34 86 34 Z"
+          fill="#fffdf7"
+          stroke="#e4dac6"
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+        />
+        <rect x={47} y={32} width={40} height={9} rx={4.5} fill="#c0392b" />
+        <circle cx={67} cy={36.5} r={3.6} fill="#fdf6ea" />
+      </g>
+
+      {/* Hocico claro */}
+      <ellipse cx={66} cy={74} rx={18} ry={13} fill="#fffdf9" />
+
+      {/* Bigotes */}
+      <g stroke="#dccab4" strokeWidth={2} strokeLinecap="round">
+        <path d="M 34 66 q -12 -4 -21 -8" />
+        <path d="M 34 73 q -13 1 -22 4" />
+        <path d="M 98 66 q 12 -4 21 -8" />
+        <path d="M 98 73 q 13 1 22 4" />
+      </g>
+
+      {/* ---------- OJOS ENORMES ---------- */}
       {ojosCerrados ? (
-        <g stroke="#3a332b" strokeWidth={3.4} strokeLinecap="round" fill="none">
-          <path d="M 38 63 q 7 7 14 0" />
-          <path d="M 68 63 q 7 7 14 0" />
+        <g stroke={OSCURO} strokeWidth={4} strokeLinecap="round" fill="none">
+          <path d="M 42 60 q 8.5 -9.5 17 0" />
+          <path d="M 73 60 q 8.5 -9.5 17 0" />
         </g>
       ) : humor === "preocupado" ? (
         <g>
-          <ellipse cx={45} cy={63} rx={5} ry={6.5} fill="#3a332b" />
-          <ellipse cx={75} cy={63} rx={5} ry={6.5} fill="#3a332b" />
-          <path d="M 37 53 q 8 -5 14 -2" stroke="#a08d72" strokeWidth={2.6} fill="none" strokeLinecap="round" />
-          <path d="M 83 53 q -8 -5 -14 -2" stroke="#a08d72" strokeWidth={2.6} fill="none" strokeLinecap="round" />
+          <ellipse cx={50} cy={62} rx={8.5} ry={10} fill={OSCURO} />
+          <ellipse cx={82} cy={62} rx={8.5} ry={10} fill={OSCURO} />
+          <circle cx={53} cy={58} r={3.2} fill="#fff" />
+          <circle cx={85} cy={58} r={3.2} fill="#fff" />
+          <path d="M 41 47 q 9 -4 16 0" stroke="#bda98f" strokeWidth={2.8} fill="none" strokeLinecap="round" />
+          <path d="M 91 47 q -9 -4 -16 0" stroke="#bda98f" strokeWidth={2.8} fill="none" strokeLinecap="round" />
         </g>
       ) : (
         <g>
-          <ellipse cx={45} cy={63} rx={5.2} ry={6.8} fill="#3a332b" />
-          <ellipse cx={75} cy={63} rx={5.2} ry={6.8} fill="#3a332b" />
-          <circle cx={47} cy={60.5} r={1.8} fill="#fff" />
-          <circle cx={77} cy={60.5} r={1.8} fill="#fff" />
+          <ellipse cx={50} cy={62} rx={10} ry={11.5} fill={OSCURO} />
+          <ellipse cx={82} cy={62} rx={10} ry={11.5} fill={OSCURO} />
+          {/* Doble brillo: el truco del uwu */}
+          <circle cx={53.5} cy={57.5} r={3.8} fill="#ffffff" />
+          <circle cx={85.5} cy={57.5} r={3.8} fill="#ffffff" />
+          <circle cx={47} cy={66} r={2} fill="#ffffff" opacity={0.85} />
+          <circle cx={79} cy={66} r={2} fill="#ffffff" opacity={0.85} />
         </g>
       )}
 
-      {/* nariz rosa con brillo */}
-      <circle cx={60} cy={74} r={4.6} fill="#e58e96" />
-      <circle cx={58.4} cy={72.4} r={1.4} fill="#f7c3c8" />
+      {/* Naricita de corazón, algo más pequeña para dejar sitio a la boca */}
+      <path
+        d="M 66 70 c -2.4 -3.2 -7.1 -2.4 -7.1 1.2 c 0 2.8 4 4.8 7.1 6.8 c 3.1 -2 7.1 -4 7.1 -6.8 c 0 -3.6 -4.7 -4.4 -7.1 -1.2 Z"
+        fill={ROSA_FUERTE}
+      />
+      <circle cx={63.2} cy={71.6} r={1.4} fill="#fff" opacity={0.8} />
 
-      {/* boca + dientecito de ratón */}
+      {/* Boquita: el dientecito va DEBAJO para no tapar la sonrisa */}
       {humor === "celebrando" ? (
         <g>
-          <path d="M 52 81 q 8 10 16 0 q -2 12 -8 12 q -6 0 -8 -12 Z" fill="#c96f6f" stroke="#3a332b" strokeWidth={2.4} strokeLinejoin="round" />
-          <rect x={57.2} y={81.5} width={5.6} height={5} rx={1.4} fill="#ffffff" stroke="#d8cfc0" strokeWidth={1} />
+          <path
+            d="M 57 82 q 9 12 18 0 q -1 12 -9 12 q -8 0 -9 -12 Z"
+            fill="#d9848f"
+            stroke={OSCURO}
+            strokeWidth={2.4}
+            strokeLinejoin="round"
+          />
+          <rect x={63} y={82.5} width={6} height={4.6} rx={1.5} fill="#fff" />
         </g>
       ) : humor === "preocupado" ? (
-        <g>
-          <path d="M 53 85 q 3.5 -3.5 7 0 q 3.5 3.5 7 0" stroke="#3a332b" strokeWidth={2.6} fill="none" strokeLinecap="round" />
-          <rect x={57.4} y={86} width={5.2} height={4.4} rx={1.3} fill="#ffffff" stroke="#d8cfc0" strokeWidth={1} opacity={0.85} />
-        </g>
+        <path
+          d="M 57 87 q 4.5 -5 9 0 q 4.5 5 9 0"
+          stroke={OSCURO}
+          strokeWidth={3}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       ) : (
-        <g>
-          <path d="M 54 82 q 3 3.5 6 3.5 q 3 0 6 -3.5" stroke="#3a332b" strokeWidth={2.6} fill="none" strokeLinecap="round" />
-          <rect x={57.4} y={85} width={5.2} height={4.8} rx={1.3} fill="#ffffff" stroke="#d8cfc0" strokeWidth={1} />
-        </g>
+        // Boquita «w» de ratoncito, limpia y bien visible
+        <path
+          d="M 56 82 q 5 7 10 0 q 5 7 10 0"
+          stroke={OSCURO}
+          strokeWidth={3}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       )}
 
-      {/* rubor */}
-      <ellipse cx={35} cy={76} rx={6.5} ry={3.6} fill="#f3b8c4" opacity={0.7} />
-      <ellipse cx={85} cy={76} rx={6.5} ry={3.6} fill="#f3b8c4" opacity={0.7} />
+      {/* Mejillas sonrojadas */}
+      <ellipse cx={34} cy={76} rx={9} ry={5.5} fill={ROSA} opacity={0.8} />
+      <ellipse cx={98} cy={76} rx={9} ry={5.5} fill={ROSA} opacity={0.8} />
 
-      {/* delantal de chef */}
-      <path d="M 40 105 Q 60 97 80 105 L 78 122 L 42 122 Z" fill="#f2ead8" stroke="#dcc9a4" strokeWidth={2.5} />
-      <path d="M 50 113 h 20" stroke="#dcc9a4" strokeWidth={2.5} strokeLinecap="round" />
-
-      {/* patitas: arriba al celebrar */}
-      {humor === "celebrando" ? (
-        <g fill="#f4ece1" stroke="#d9c8b2" strokeWidth={2.5}>
-          <circle cx={15} cy={50} r={9} />
-          <circle cx={105} cy={50} r={9} />
-        </g>
-      ) : (
-        <g fill="#f4ece1" stroke="#d9c8b2" strokeWidth={2.5}>
-          <ellipse cx={30} cy={113} rx={10} ry={7} />
-          <ellipse cx={90} cy={113} rx={10} ry={7} />
+      {/* Chispitas al celebrar */}
+      {humor === "celebrando" && !reduce && (
+        <g>
+          {[
+            [16, 20, 0],
+            [116, 18, 0.3],
+            [120, 88, 0.6],
+          ].map(([x, y, d], i) => (
+            <motion.path
+              key={i}
+              d={`M ${x} ${y - 6} l 1.8 4.6 l 4.6 1.8 l -4.6 1.8 l -1.8 4.6 l -1.8 -4.6 l -4.6 -1.8 l 4.6 -1.8 Z`}
+              fill="#f7cf5a"
+              animate={{ scale: [0, 1.15, 0], opacity: [0, 1, 0] }}
+              transition={{ duration: 1.1, repeat: Infinity, delay: d as number }}
+              style={{ transformOrigin: `${x}px ${y}px` }}
+            />
+          ))}
         </g>
       )}
     </motion.svg>

@@ -59,7 +59,13 @@ function leerJSON<T>(clave: string, porDefecto: T): T {
 
 /* ------------------------------ API ------------------------------ */
 
-const PROGRESO_INICIAL: Progreso = { estrellas: {}, nivelMax: 1, puntosTotales: 0 };
+const PROGRESO_INICIAL: Progreso = {
+  estrellas: {},
+  nivelMax: 1,
+  puntosTotales: 0,
+  mejorRondaCarrera: 0,
+  mejorPuntosCarrera: 0,
+};
 const PREFS_INICIALES: Preferencias = { sonido: true, ambiente: false, modo: "zen" };
 
 export function obtenerProgreso(): Progreso {
@@ -81,6 +87,16 @@ export function registrarEstrellas(
   const previas = p.estrellas[nivelId] ?? 0;
   p.estrellas[nivelId] = Math.max(previas, estrellas);
   p.nivelMax = Math.max(p.nivelMax, Math.min(nivelId + 1, totalNiveles));
+  p.puntosTotales += puntos;
+  guardarProgreso(p);
+  return p;
+}
+
+/** Guarda el récord de una partida de Carrera si mejora el anterior. */
+export function registrarCarrera(ronda: number, puntos: number): Progreso {
+  const p = obtenerProgreso();
+  p.mejorRondaCarrera = Math.max(p.mejorRondaCarrera ?? 0, ronda);
+  p.mejorPuntosCarrera = Math.max(p.mejorPuntosCarrera ?? 0, puntos);
   p.puntosTotales += puntos;
   guardarProgreso(p);
   return p;

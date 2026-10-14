@@ -3,7 +3,17 @@
  * Título, Mochi saludando, modo Zen/Servicio y preferencias de sonido.
  */
 import { motion } from "framer-motion";
-import { CloudRain, Play, Star, Timer, Volume2, VolumeX, Waves } from "lucide-react";
+import {
+  CloudRain,
+  Infinity as IconoInfinito,
+  Lock as IconoCandado,
+  Play,
+  Star,
+  Timer,
+  Volume2,
+  VolumeX,
+  Waves,
+} from "lucide-react";
 import { useViewport } from "../hooks/useViewport";
 import type { Preferencias } from "../game/types";
 import { Fondo } from "../components/Fondo";
@@ -14,7 +24,10 @@ interface Props {
   prefs: Preferencias;
   estrellasTotales: number;
   servicioDesbloqueado: boolean;
+  carreraDesbloqueada: boolean;
+  mejorRondaCarrera: number;
   onJugar: () => void;
+  onCarrera: () => void;
   onPreferencias: (p: Preferencias) => void;
 }
 
@@ -22,7 +35,10 @@ export function StartScreen({
   prefs,
   estrellasTotales,
   servicioDesbloqueado,
+  carreraDesbloqueada,
+  mejorRondaCarrera,
   onJugar,
+  onCarrera,
   onPreferencias,
 }: Props) {
   const vp = useViewport();
@@ -97,6 +113,29 @@ export function StartScreen({
           whileTap={{ scale: 0.94 }}
         >
           <Play size={22} className="fill-current" /> Jugar
+        </motion.button>
+
+        {/* Modo Carrera: cajas infinitas generadas al vuelo */}
+        <motion.button
+          onClick={carreraDesbloqueada ? onCarrera : undefined}
+          disabled={!carreraDesbloqueada}
+          className={`flex h-12 items-center gap-2 rounded-full border-2 px-6 text-sm font-black transition-colors ${
+            carreraDesbloqueada
+              ? "border-[#5c9a4e] bg-[#5c9a4e]/15 text-[#44752f]"
+              : "border-[#d8c8a4] bg-white/50 text-[#b3a586]"
+          }`}
+          whileHover={carreraDesbloqueada ? { scale: 1.04 } : {}}
+          whileTap={carreraDesbloqueada ? { scale: 0.94 } : {}}
+          title={carreraDesbloqueada ? "Cajas infinitas contrarreloj" : "Completa el nivel 2 para desbloquear"}
+        >
+          <IconoInfinito size={18} strokeWidth={2.8} />
+          Modo Carrera
+          {carreraDesbloqueada && mejorRondaCarrera > 0 && (
+            <span className="rounded-full bg-[#44752f] px-2 py-0.5 text-[10px] text-white">
+              {mejorRondaCarrera}
+            </span>
+          )}
+          {!carreraDesbloqueada && <IconoCandado size={14} />}
         </motion.button>
 
         {estrellasTotales > 0 && (

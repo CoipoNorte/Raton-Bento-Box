@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 
 interface Props {
   titulo: string;
-  modo: "zen" | "servicio";
+  modo: "zen" | "servicio" | "carrera";
   sonidoActivo: boolean;
   compacto?: boolean;
   onVolver: () => void;
@@ -63,7 +63,7 @@ export function HUD({
           <Pastilla>
             {/* El título se recorta: nunca empuja a los botones */}
             <span className="truncate text-sm font-bold text-[#5c4a2e]">{titulo}</span>
-            {modo === "servicio" && <Timer size={15} className="shrink-0 text-[#c0392b]" />}
+            {modo !== "zen" && <Timer size={15} className="shrink-0 text-[#c0392b]" />}
           </Pastilla>
         )}
       </div>

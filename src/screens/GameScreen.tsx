@@ -37,7 +37,6 @@ import { ResultScreen } from "./ResultScreen";
 import { puntuar } from "../game/balance";
 import { INGREDIENTES } from "../game/ingredients";
 import { calcularCelda, medidasCaja } from "../game/layout";
-import { nivelPorId } from "../game/levels";
 import {
   cajaLlena,
   celdasDe,
@@ -50,7 +49,14 @@ import {
   recalcularOcupacion,
 } from "../game/logic";
 import * as snd from "../game/sound";
-import type { Celda, Preferencias, PiezaInst, Resultado } from "../game/types";
+import type {
+  Celda,
+  ModoJuego,
+  NivelDef,
+  Preferencias,
+  PiezaInst,
+  Resultado,
+} from "../game/types";
 import { useViewport } from "../hooks/useViewport";
 
 type Fase = "tutorial" | "jugando" | "pausa" | "completado" | "tiempo";
@@ -71,28 +77,48 @@ interface Arrastre {
   punto: Punto;
 }
 
+/** Datos de la partida de Carrera en curso. */
+export interface EstadoCarrera {
+  ronda: number;
+  puntos: number;
+  /** Segundos heredados de la ronda anterior. */
+  tiempoInicial: number;
+  mejorRonda: number;
+}
+
 interface Props {
-  nivelId: number;
+  /** Nivel ya resuelto: artesanal (levels.ts) o procedural (generator.ts). */
+  nivel: NivelDef;
   prefs: Preferencias;
-  totalNiveles: number;
+  modoJuego: ModoJuego;
+  esUltimo: boolean;
+  carrera?: EstadoCarrera;
   onSalir: () => void;
   onCompletado: (nivelId: number, estrellas: number, puntos: number) => void;
   onSiguiente: () => void;
   onAlternarSonido: () => void;
+  /** Carrera: caja servida a tiempo. */
+  onCarreraCompletada?: (tiempoRestante: number, puntos: number) => void;
+  /** Carrera: se acabó el tiempo. */
+  onCarreraFin?: () => void;
 }
 
 export function GameScreen({
-  nivelId,
+  nivel,
   prefs,
-  totalNiveles,
+  modoJuego,
+  esUltimo,
+  carrera,
   onSalir,
   onCompletado,
   onSiguiente,
   onAlternarSonido,
+  onCarreraCompletada,
+  onCarreraFin,
 }: Props) {
   const vp = useViewport();
-  const nivel = useMemo(() => nivelPorId(nivelId), [nivelId]);
   const build = useMemo(() => construirNivel(nivel), [nivel]);
+  const esCarrera = modoJuego === "carrera";
 
   /* ------------------------------ estado ------------------------------ */
   const [piezas, setPiezas] = useState<PiezaInst[]>(() =>
@@ -103,8 +129,11 @@ export function GameScreen({
   const [historial, setHistorial] = useState<Accion[]>([]);
   const [perfectos, setPerfectos] = useState(0);
   const [elegante, setElegante] = useState(true);
-  const [fase, setFase] = useState<Fase>("tutorial");
-  const [tiempo, setTiempo] = useState(nivel.tiempo);
+  // En Carrera no hay tutorial: el servicio ya está en marcha.
+  const [fase, setFase] = useState<Fase>(esCarrera ? "jugando" : "tutorial");
+  const [tiempo, setTiempo] = useState(carrera ? carrera.tiempoInicial : nivel.tiempo);
+  // Máximo para dibujar la barra: en Carrera el reloj se hereda.
+  const tiempoMax = useRef(carrera ? Math.max(carrera.tiempoInicial, 1) : nivel.tiempo);
   const [pistasRestantes, setPistasRestantes] = useState(nivel.pistas);
   const [pistaUid, setPistaUid] = useState<string | null>(null);
   const [pistaCeldas, setPistaCeldas] = useState<Celda[] | null>(null);
@@ -130,7 +159,8 @@ export function GameScreen({
   const pedidoOk = cumplidos.every(Boolean);
   const colores = useMemo(() => coloresPresentes(piezas), [piezas]);
   const enBandeja = piezas.filter((p) => p.x === null);
-  const esServicio = prefs.modo === "servicio";
+  /** Zen es el único modo sin reloj. */
+  const conReloj = modoJuego !== "zen";
 
   /* --------------------- medición: la caja manda ---------------------- */
   const denso = vp.bajaAltura && !vp.retrato;
@@ -167,17 +197,19 @@ export function GameScreen({
 
   /* --------------------------- temporizador --------------------------- */
   useEffect(() => {
-    if (!esServicio || fase !== "jugando") return;
+    if (!conReloj || fase !== "jugando") return;
     const id = window.setInterval(() => setTiempo((t) => Math.max(0, t - 1)), 1000);
     return () => window.clearInterval(id);
-  }, [esServicio, fase]);
+  }, [conReloj, fase]);
 
   useEffect(() => {
-    if (esServicio && fase === "jugando" && tiempo === 0) {
+    if (conReloj && fase === "jugando" && tiempo === 0) {
       setFase("tiempo");
       snd.invalido();
+      // En Carrera, agotar el reloj termina la partida completa.
+      if (esCarrera) onCarreraFin?.();
     }
-  }, [tiempo, esServicio, fase]);
+  }, [tiempo, conReloj, fase, esCarrera, onCarreraFin]);
 
   /* ------------------------------ humor ------------------------------- */
   useEffect(
@@ -346,11 +378,33 @@ export function GameScreen({
       { perfectos, goshikiCompleto: colores.size === 5, elegante },
       build.modelo.rects.length,
     );
+    if (esCarrera) {
+      // Carrera: nada de ceremonia, la cocina no para. Suena el clic,
+      // se suma el tiempo sobrante y entra el siguiente pedido.
+      setFase("completado");
+      snd.tapa();
+      snd.arpegioCompletado();
+      onCarreraCompletada?.(tiempo, res.puntos);
+      return;
+    }
     setResultado(res);
     setFase("completado");
     onCompletado(nivel.id, res.estrellas, res.puntos);
     // La coreografía sonora vive en ResultScreen para no duplicarse.
-  }, [fase, llena, pedidoOk, perfectos, colores, elegante, build.modelo, nivel.id, onCompletado]);
+  }, [
+    fase,
+    llena,
+    pedidoOk,
+    perfectos,
+    colores,
+    elegante,
+    build.modelo,
+    nivel.id,
+    onCompletado,
+    esCarrera,
+    onCarreraCompletada,
+    tiempo,
+  ]);
 
   const reiniciar = useCallback(() => {
     setPiezas(build.piezas.map((p) => ({ ...p, x: null, y: null, rotacion: 0 })));
@@ -546,12 +600,12 @@ export function GameScreen({
       <Fondo />
 
       {/* Barra de tiempo del servicio: 5 px, pegada al borde */}
-      {esServicio && (
+      {conReloj && (
         <div className="absolute inset-x-0 top-0 z-50 h-[5px] bg-black/10">
           <motion.div
             className="h-full"
             style={{
-              width: `${(tiempo / nivel.tiempo) * 100}%`,
+              width: `${Math.min(100, (tiempo / tiempoMax.current) * 100)}%`,
               background: tiempo <= 10 ? "#c0392b" : "#a03127",
             }}
             animate={tiempo <= 10 && jugando ? { opacity: [1, 0.4, 1] } : { opacity: 1 }}
@@ -561,8 +615,12 @@ export function GameScreen({
       )}
 
       <HUD
-        titulo={`${nivel.id}. ${nivel.nombre}`}
-        modo={prefs.modo}
+        titulo={
+          carrera
+            ? `Ronda ${carrera.ronda} · ${carrera.puntos.toLocaleString("es")} pts`
+            : `${nivel.id}. ${nivel.nombre}`
+        }
+        modo={modoJuego}
         sonidoActivo={prefs.sonido}
         compacto={denso || vp.ancho < 420}
         onVolver={onSalir}
@@ -838,7 +896,7 @@ export function GameScreen({
         <ResultScreen
           resultado={resultado}
           nombreNivel={nivel.nombre}
-          esUltimo={nivel.id >= totalNiveles}
+          esUltimo={esUltimo}
           onSiguiente={onSiguiente}
           onRepetir={reiniciar}
           onSalir={onSalir}
