@@ -1,19 +1,18 @@
 /**
- * useTapSinArrastre — El anti-bug del gesto doble, versión seria.
+ * useTapSinArrastre — Motor de gestos de la bandeja.
  *
- * El bug original: drag + onTap de Framer Motion disparan AMBOS gestos
- * al soltar. La solución definitiva es no usar `drag` en absoluto:
- * aquí UN SOLO flujo de puntero decide — o es arrastre, o es tap,
- * nunca los dos. Además convive con el SCROLL NATIVO de la bandeja:
+ * Un solo flujo de puntero decide ENTRE TRES cosas, nunca dos a la vez:
+ *   · tap      → rotar la pieza
+ *   · arrastre → sacarla hacia la caja
+ *   · scroll   → recorrer la bandeja
  *
- * - Cada pieza lleva `touch-action: pan-x|pan-y` según el eje de la
- *   bandeja. Un gesto a lo largo del eje lo captura el navegador para
- *   hacer scroll y nos llega `pointercancel`: cancelamos limpios.
- * - Un gesto hacia la caja (perpendicular al eje) supera el umbral y
- *   se convierte en arrastre: ahí sí capturamos el puntero.
- * - Soltar sin arrastrar = tap (rotar). Una sola decisión por gesto.
- * - La limpieza de escuchas ocurre en la misma macrotarea del `up`:
- *   el siguiente gesto siempre nace con la casa ordenada.
+ * Por qué NO usamos `touch-action: pan-x/pan-y` en las piezas:
+ * el navegador se quedaba con cualquier gesto que tuviera algo de
+ * componente paralelo y nos mandaba `pointercancel`. Resultado: la
+ * pieza no se movía y el siguiente toque la rotaba sin querer. Ahora
+ * las piezas llevan `touch-action: none` y el scroll de la bandeja lo
+ * hacemos nosotros a mano cuando el gesto va claramente a lo largo
+ * del eje. Así el arrastre SIEMPRE responde, incluso en diagonal.
  */
 import { useCallback, useEffect, useRef } from "react";
 
@@ -22,10 +21,21 @@ export interface Punto {
   y: number;
 }
 
+/** Celda de la pieza que el dedo ha agarrado (en unidades de celda). */
+export interface Agarre {
+  fx: number;
+  fy: number;
+}
+
+type Modo = "indeciso" | "arrastre" | "scroll";
+
 interface Opciones {
-  /** Eje de scroll de la bandeja: el arrastre exige dominancia perpendicular. */
+  /** Eje de scroll de la bandeja. */
   ejeBandeja: "x" | "y";
+  /** Distancia en px que convierte un toque en gesto. */
   umbral?: number;
+  /** Contenedor desplazable de la bandeja. */
+  contenedorRef: React.RefObject<HTMLElement | null>;
   alIniciarArrastre: (uid: string, punto: Punto) => void;
   alMover: (punto: Punto) => void;
   alSoltar: (punto: Punto) => void;
@@ -37,13 +47,13 @@ interface Gesto {
   uid: string;
   idPuntero: number;
   el: HTMLElement;
+  contenedor: HTMLElement | null;
   inicio: Punto;
   ultima: Punto;
-  arrastrando: boolean;
-  /** Solo el táctil compite con el scroll; el ratón arrastra libre. */
+  scrollInicial: number;
+  margenScroll: number;
+  modo: Modo;
   tactil: boolean;
-  /** ¿La bandeja puede desplazarse de verdad en su eje? */
-  bandejaDesplazable: boolean;
 }
 
 interface Manejadores {
@@ -54,7 +64,8 @@ interface Manejadores {
 
 export function useTapSinArrastre({
   ejeBandeja,
-  umbral = 8,
+  umbral = 7,
+  contenedorRef,
   alIniciarArrastre,
   alMover,
   alSoltar,
@@ -62,11 +73,28 @@ export function useTapSinArrastre({
   alTap,
 }: Opciones) {
   const gesto = useRef<Gesto | null>(null);
-  // Callbacks y ajustes siempre frescos, escuchas registradas una sola vez.
-  const cb = useRef({ ejeBandeja, umbral, alIniciarArrastre, alMover, alSoltar, alCancelar, alTap });
-  cb.current = { ejeBandeja, umbral, alIniciarArrastre, alMover, alSoltar, alCancelar, alTap };
+  // Callbacks y ajustes siempre frescos; las escuchas se crean una vez.
+  const cb = useRef({
+    ejeBandeja,
+    umbral,
+    contenedorRef,
+    alIniciarArrastre,
+    alMover,
+    alSoltar,
+    alCancelar,
+    alTap,
+  });
+  cb.current = {
+    ejeBandeja,
+    umbral,
+    contenedorRef,
+    alIniciarArrastre,
+    alMover,
+    alSoltar,
+    alCancelar,
+    alTap,
+  };
 
-  // Manejadores perezosos: se crean una vez y leen siempre cb.current.
   const manejadores = useRef<Manejadores | null>(null);
   if (!manejadores.current) {
     const quitarEscuchas = () => {
@@ -76,6 +104,16 @@ export function useTapSinArrastre({
       window.removeEventListener("pointerup", m.soltar);
       window.removeEventListener("pointercancel", m.cancelar);
     };
+
+    /** Cierra el gesto vivo pase lo que pase (incluye limpieza de estado). */
+    const abortar = () => {
+      const g = gesto.current;
+      if (!g) return;
+      quitarEscuchas();
+      gesto.current = null;
+      if (g.modo === "arrastre") cb.current.alCancelar();
+    };
+
     const cerrar = (e: PointerEvent, fin: (g: Gesto) => void) => {
       const g = gesto.current;
       if (!g || e.pointerId !== g.idPuntero) return;
@@ -83,78 +121,110 @@ export function useTapSinArrastre({
       gesto.current = null;
       fin(g);
     };
+
     manejadores.current = {
       mover: (e) => {
         const g = gesto.current;
         if (!g || e.pointerId !== g.idPuntero) return;
         g.ultima = { x: e.clientX, y: e.clientY };
-        if (!g.arrastrando) {
-          const dx = Math.abs(e.clientX - g.inicio.x);
-          const dy = Math.abs(e.clientY - g.inicio.y);
-          if (Math.max(dx, dy) < cb.current.umbral) return;
-          // Solo disputamos el gesto al scroll si de verdad hay scroll
-          // táctil en juego. Con ratón, o con la bandeja sin desplazar,
-          // cualquier dirección vale: arrastrar en diagonal funciona.
-          if (g.tactil && g.bandejaDesplazable) {
-            const paralelo = cb.current.ejeBandeja === "x" ? dx : dy;
-            const perpendicular = cb.current.ejeBandeja === "x" ? dy : dx;
-            // Margen generoso (0.7): no exige un gesto perfectamente recto.
-            if (perpendicular < paralelo * 0.7) return;
+        const dx = e.clientX - g.inicio.x;
+        const dy = e.clientY - g.inicio.y;
+        const adx = Math.abs(dx);
+        const ady = Math.abs(dy);
+
+        if (g.modo === "indeciso") {
+          if (Math.max(adx, ady) < cb.current.umbral) return;
+          const paralelo = cb.current.ejeBandeja === "x" ? adx : ady;
+          const perpendicular = cb.current.ejeBandeja === "x" ? ady : adx;
+          // El gesto solo cuenta como scroll si es MUY claramente a lo
+          // largo del eje y además hay recorrido que desplazar. En
+          // cualquier otro caso manda el arrastre: sacar la pieza es
+          // la acción principal y nunca debe fallar.
+          const esScroll =
+            g.tactil && g.margenScroll > 0 && paralelo > perpendicular * 1.5;
+          if (esScroll) {
+            g.modo = "scroll";
+          } else {
+            g.modo = "arrastre";
+            try {
+              g.el.setPointerCapture(g.idPuntero);
+            } catch {
+              /* seguimos escuchando en window */
+            }
+            cb.current.alIniciarArrastre(g.uid, g.ultima);
           }
-          g.arrastrando = true;
-          try {
-            g.el.setPointerCapture(g.idPuntero);
-          } catch {
-            /* el puntero ya no existe: seguimos por ventana */
-          }
-          cb.current.alIniciarArrastre(g.uid, g.ultima);
         }
-        cb.current.alMover(g.ultima);
+
+        if (g.modo === "arrastre") {
+          cb.current.alMover(g.ultima);
+        } else if (g.modo === "scroll" && g.contenedor) {
+          // Scroll manual: el navegador ya no nos roba el gesto.
+          if (cb.current.ejeBandeja === "x") {
+            g.contenedor.scrollLeft = g.scrollInicial - dx;
+          } else {
+            g.contenedor.scrollTop = g.scrollInicial - dy;
+          }
+        }
       },
+
       soltar: (e) =>
         cerrar(e, (g) => {
-          if (g.arrastrando) {
+          if (g.modo === "arrastre") {
             cb.current.alSoltar(g.ultima);
             return;
           }
-          // Tap SOLO si el recorrido total fue minúsculo: un barrido
-          // largo sin arrastre (p. ej. desplazar la bandeja con el
-          // ratón) no debe rotar la pieza por accidente.
+          if (g.modo === "scroll") return;
+          // Tap solo si el dedo apenas se movió: un intento de arrastre
+          // que se quedó corto JAMÁS debe acabar rotando la pieza.
           const recorrido = Math.max(
             Math.abs(g.ultima.x - g.inicio.x),
             Math.abs(g.ultima.y - g.inicio.y),
           );
           if (recorrido < cb.current.umbral) cb.current.alTap(g.uid);
         }),
+
       cancelar: (e) =>
         cerrar(e, (g) => {
-          if (g.arrastrando) cb.current.alCancelar();
+          if (g.modo === "arrastre") cb.current.alCancelar();
         }),
     };
+
+    // Guardamos `abortar` para poder reutilizarlo desde `bajar`.
+    (manejadores.current as Manejadores & { abortar: () => void }).abortar = abortar;
   }
 
   /** Conectar al onPointerDown de cada pieza de la bandeja. */
   const bajar = useCallback((uid: string, e: React.PointerEvent<HTMLElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    if (gesto.current) return; // un gesto a la vez, la calma primero
-    const m = manejadores.current;
+    const m = manejadores.current as (Manejadores & { abortar: () => void }) | null;
     if (!m) return;
-    // ¿Hay scroll real en la bandeja? Si no, nada compite con el arrastre.
-    const contenedor = e.currentTarget.parentElement;
-    const desplazable = contenedor
+    // Si quedó un gesto huérfano (un pointerup perdido, una pieza que
+    // se desmontó a medias…), lo cerramos: nunca debe bloquear el
+    // siguiente arrastre.
+    if (gesto.current) m.abortar();
+
+    const contenedor = cb.current.contenedorRef.current ?? e.currentTarget.parentElement;
+    const margenScroll = contenedor
       ? cb.current.ejeBandeja === "x"
-        ? contenedor.scrollWidth - contenedor.clientWidth > 4
-        : contenedor.scrollHeight - contenedor.clientHeight > 4
-      : false;
+        ? contenedor.scrollWidth - contenedor.clientWidth
+        : contenedor.scrollHeight - contenedor.clientHeight
+      : 0;
+
     gesto.current = {
       uid,
       idPuntero: e.pointerId,
       el: e.currentTarget,
+      contenedor,
       inicio: { x: e.clientX, y: e.clientY },
       ultima: { x: e.clientX, y: e.clientY },
-      arrastrando: false,
+      scrollInicial: contenedor
+        ? cb.current.ejeBandeja === "x"
+          ? contenedor.scrollLeft
+          : contenedor.scrollTop
+        : 0,
+      margenScroll: Math.max(0, margenScroll - 4),
+      modo: "indeciso",
       tactil: e.pointerType !== "mouse",
-      bandejaDesplazable: desplazable,
     };
     window.addEventListener("pointermove", m.mover);
     window.addEventListener("pointerup", m.soltar);
@@ -162,16 +232,10 @@ export function useTapSinArrastre({
   }, []);
 
   // Limpieza al desmontar.
-  useEffect(
-    () => () => {
-      const m = manejadores.current;
-      if (!m) return;
-      window.removeEventListener("pointermove", m.mover);
-      window.removeEventListener("pointerup", m.soltar);
-      window.removeEventListener("pointercancel", m.cancelar);
-    },
-    [],
-  );
+  useEffect(() => {
+    const m = manejadores.current as (Manejadores & { abortar: () => void }) | null;
+    return () => m?.abortar();
+  }, []);
 
   return { bajar };
 }

@@ -73,19 +73,39 @@ function Brillo({ cx, cy, r }: { cx: number; cy: number; r: number }) {
   return <ellipse cx={cx - r * 0.32} cy={cy - r * 0.38} rx={r * 0.34} ry={r * 0.2} fill="#ffffff" opacity={0.5} />;
 }
 
-/** Dibujo de cada ingrediente dentro de su caja delimitadora. */
-function Arte({ id, celdas, bw, bh }: { id: IngredienteId; celdas: Celda[]; bw: number; bh: number }) {
+/**
+ * Dibujo de cada ingrediente dentro de su caja delimitadora.
+ * `rot` permite que los detalles con dirección (surcos del arroz, capas
+ * del tamagoyaki, vetas del salmón, cola del langostino) acompañen al
+ * giro de la pieza. El sentido es el mismo que el de la lógica:
+ * antihorario, de ahí el signo negativo.
+ */
+function Arte({
+  id,
+  celdas,
+  bw,
+  bh,
+  rot,
+}: {
+  id: IngredienteId;
+  celdas: Celda[];
+  bw: number;
+  bh: number;
+  rot: number;
+}) {
   const W = bw * 100;
   const H = bh * 100;
   const cx = W / 2;
   const cy = H / 2;
+  /** Transform para girar un detalle alrededor de un punto. */
+  const giro = (gx: number, gy: number) => `rotate(${-rot * 90} ${gx} ${gy})`;
 
   switch (id) {
     case "arroz":
       return (
         <>
           <Base celdas={celdas} fill="#fbf7ec" stroke="#e6dcc4" />
-          {/* surcos de arroz amontonado */}
+          {/* surcos de arroz amontonado, siguiendo el giro de la pieza */}
           {celdas.map(([x, y], i) => (
             <path
               key={i}
@@ -94,6 +114,7 @@ function Arte({ id, celdas, bw, bh }: { id: IngredienteId; celdas: Celda[]; bw: 
               strokeWidth={5}
               fill="none"
               strokeLinecap="round"
+              transform={giro(x * 100 + 50, y * 100 + 50)}
             />
           ))}
           <Sesamo celdas={celdas} />
@@ -133,7 +154,7 @@ function Arte({ id, celdas, bw, bh }: { id: IngredienteId; celdas: Celda[]; bw: 
       return (
         <>
           <Base celdas={celdas} fill="#f6c945" stroke="#dfa417" />
-          {/* capas del enrollado */}
+          {/* capas del enrollado, perpendiculares al eje de la pieza */}
           {celdas.map(([x, y], i) => (
             <path
               key={i}
@@ -142,6 +163,7 @@ function Arte({ id, celdas, bw, bh }: { id: IngredienteId; celdas: Celda[]; bw: 
               strokeWidth={6}
               strokeLinecap="round"
               fill="none"
+              transform={giro(x * 100 + 50, y * 100 + 50)}
             />
           ))}
           {/* espiral del extremo */}
@@ -154,7 +176,7 @@ function Arte({ id, celdas, bw, bh }: { id: IngredienteId; celdas: Celda[]; bw: 
       return (
         <>
           <Base celdas={celdas} fill="#f5825f" stroke="#e2683f" />
-          {/* vetas de grasa */}
+          {/* vetas de grasa, orientadas con el lomo del sashimi */}
           {celdas.map(([x, y], i) => (
             <path
               key={i}
@@ -164,6 +186,7 @@ function Arte({ id, celdas, bw, bh }: { id: IngredienteId; celdas: Celda[]; bw: 
               strokeLinecap="round"
               fill="none"
               opacity={0.9}
+              transform={giro(x * 100 + 50, y * 100 + 50)}
             />
           ))}
           <Brillo cx={cx} cy={cy} r={W / 3} />
@@ -180,7 +203,7 @@ function Arte({ id, celdas, bw, bh }: { id: IngredienteId; celdas: Celda[]; bw: 
         [cx - 38, cy + 8, 24],
       ];
       return (
-        <>
+        <g transform={giro(cx, cy)}>
           {bocados.map(([x, y, r], i) => (
             <g key={i}>
               <circle cx={x} cy={y} r={r} fill="#d8983c" stroke="#a96f24" strokeWidth={3} />
@@ -189,7 +212,7 @@ function Arte({ id, celdas, bw, bh }: { id: IngredienteId; celdas: Celda[]; bw: 
               <circle cx={x + r * 0.05} cy={y - r * 0.44} r={r * 0.1} fill="#8f5e1e" />
             </g>
           ))}
-        </>
+        </g>
       );
     }
 
@@ -200,19 +223,21 @@ function Arte({ id, celdas, bw, bh }: { id: IngredienteId; celdas: Celda[]; bw: 
       const tailY = primera[1] * 100 + 44;
       return (
         <>
-          {/* cola del langostino */}
-          <path
-            d={`M ${tailX - 22} ${tailY - 6} q -20 -22 4 -26 q 6 14 18 16 q 14 -12 22 2 q -14 6 -18 18 q 2 16 -14 18 q -12 -12 -12 -28 Z`}
-            fill="#e2603f"
-            stroke="#c24c2f"
-            strokeWidth={3}
-            strokeLinejoin="round"
-          />
-          <path d={`M ${tailX - 14} ${tailY - 18} l 10 10 M ${tailX + 2} ${tailY - 20} l 8 12`} stroke="#f4a488" strokeWidth={4} strokeLinecap="round" />
-          {/* cuerpo de rebozado */}
-          <Base celdas={celdas.slice(1)} fill="#e3a94f" stroke="#c08a35" />
+          {/* La pieza entera lleva fondo: nada de celdas huecas */}
+          <Base celdas={celdas} fill="#e3a94f" stroke="#c08a35" />
+          {/* cola del langostino: gira con la pieza */}
+          <g transform={giro(tailX, tailY)}>
+            <path
+              d={`M ${tailX - 22} ${tailY - 6} q -20 -22 4 -26 q 6 14 18 16 q 14 -12 22 2 q -14 6 -18 18 q 2 16 -14 18 q -12 -12 -12 -28 Z`}
+              fill="#e2603f"
+              stroke="#c24c2f"
+              strokeWidth={3}
+              strokeLinejoin="round"
+            />
+            <path d={`M ${tailX - 14} ${tailY - 18} l 10 10 M ${tailX + 2} ${tailY - 20} l 8 12`} stroke="#f4a488" strokeWidth={4} strokeLinecap="round" />
+          </g>
           {celdas.slice(1).map(([x, y], i) => (
-            <g key={i}>
+            <g key={i} transform={giro(x * 100 + 50, y * 100 + 50)}>
               <path d={`M ${x * 100 + 24} ${y * 100 + 34} q 24 -14 50 2 M ${x * 100 + 26} ${y * 100 + 58} q 22 -12 46 0`} stroke="#c98f38" strokeWidth={5} fill="none" strokeLinecap="round" />
               {[0, 1, 2].map((k) => (
                 <circle key={k} cx={x * 100 + 30 + k * 18} cy={y * 100 + 76} r={4} fill="#f4d08a" />
@@ -373,7 +398,7 @@ export function FoodSVG({ id, celda, rotacion = 0, className }: Props) {
         </clipPath>
       </defs>
       <g clipPath={`url(#${idRecorte})`}>
-        <Arte id={id} celdas={celdas} bw={bw} bh={bh} />
+        <Arte id={id} celdas={celdas} bw={bw} bh={bh} rot={rotacion} />
       </g>
     </svg>
   );

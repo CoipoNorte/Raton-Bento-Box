@@ -31,7 +31,7 @@ import { Mascot } from "../components/Mascot";
 import type { Humor } from "../components/Mascot";
 import { OrderCard } from "../components/OrderCard";
 import { PieceTray } from "../components/PieceTray";
-import type { Punto } from "../components/PieceTray";
+import type { Agarre, Punto } from "../components/PieceTray";
 import { ResultScreen } from "./ResultScreen";
 
 import { puntuar } from "../game/balance";
@@ -423,24 +423,13 @@ export function GameScreen({
 
   /* --------------------- gestos de arrastre (propios) ------------------ */
   const alIniciarArrastre = useCallback(
-    (uid: string, punto: Punto) => {
+    (uid: string, punto: Punto, agarre: Agarre) => {
       const pieza = piezas.find((p) => p.uid === uid);
       if (!pieza) return;
-      const celdas = celdasDe(pieza);
-      const bw = Math.max(...celdas.map(([x]) => x)) + 1;
-      const bh = Math.max(...celdas.map(([, y]) => y)) + 1;
-      // Agarre FRACCIONAL (en celdas) sobre el dibujo real de la bandeja:
-      // así la pieza no «salta» al pasar a la escala del tablero.
-      const el = document.querySelector<HTMLElement>(`[data-comida="${uid}"]`);
-      const r = el?.getBoundingClientRect();
-      const fx = r && r.width > 0 ? ((punto.x - r.left) / r.width) * bw : bw / 2;
-      const fy = r && r.height > 0 ? ((punto.y - r.top) / r.height) * bh : bh / 2;
-      arrastre.current = {
-        uid,
-        fx: Math.min(Math.max(fx, 0), bw),
-        fy: Math.min(Math.max(fy, 0), bh),
-        punto,
-      };
+      // El agarre llega ya calculado por la bandeja, que es quien sabe
+      // a qué escala dibuja cada pieza. Viene en unidades de celda, así
+      // que la pieza no «salta» al pasar a la escala del tablero.
+      arrastre.current = { uid, fx: agarre.fx, fy: agarre.fy, punto };
       setArrastreUi({ uid, punto });
       setSeleccionada(uid);
       setFantasma(fantasmaDe(pieza, punto));

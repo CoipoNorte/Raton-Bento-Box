@@ -4,6 +4,7 @@
 ![Build](https://img.shields.io/badge/Vite_7-Tailwind_4-a855f7?logo=vite&logoColor=white)
 ![Motion](https://img.shields.io/badge/Framer_Motion-Lucide-f472b6)
 ![Audio](https://img.shields.io/badge/WebAudio-100%25_sintetizado-f2c14e)
+![Niveles](https://img.shields.io/badge/24_niveles-+_modo_infinito-a03127)
 ![Deploy](https://img.shields.io/badge/GitHub_Pages-listo-2ea44f?logo=github)
 
 Un juego acogedor y ultra relajante de organización donde preparas cajas bento encajando ingredientes como un rompecabezas, buscando el **encaje perfecto sin huecos**, con sonido **ASMR WebAudio sintetizado** y acompañado por **Mochi, el simpático ratoncito chef**.
@@ -46,19 +47,62 @@ Un juego acogedor y ultra relajante de organización donde preparas cajas bento 
 - **Tarjeta de pedido**: muestra qué ingredientes o colores solicita el cliente mediante iconos visuales. Naranja indica pendiente, verde indica completado.
 - **Regla Goshiki (5 colores)**: rojo, amarillo, verde, blanco y negro. Un medidor de 5 puntitos se enciende a medida que los incluyes, otorgando bonificación especial al cerrar la caja con la armonía completa.
 - **Encaje perfecto de compartimento**: al completar un compartimento individual se produce un destello dorado y repique de campanita.
-- **Modos de juego**:
-  - **Modo Zen**: sin límite de tiempo, relajación total.
-  - **Servicio del día**: modo contrarreloj con barra de tiempo ultra-fina en el borde superior (roja en los últimos 10 segundos).
+- **Estrellas 1–3 por nivel**: se consiguen por terminar sin huecos, completar el goshiki, jugar con elegancia (sin deshacer ni retirar piezas) y encadenar encajes perfectos. En total hay **72 estrellas** por conseguir.
+
+---
+
+## 🕹️ Modos de juego
+
+| Modo | Descripción | Desbloqueo |
+| --- | --- | --- |
+| 🧘 **Zen** | Sin límite de tiempo. Pura organización y ASMR. | Desde el inicio |
+| ⏱️ **Servicio del día** | Los 24 niveles contrarreloj, con barra ultrafina de 5 px pegada al borde superior que se vuelve roja en los últimos 10 segundos. | Nivel 3 |
+| ♾️ **Carrera** | **Cajas infinitas generadas proceduralmente.** El reloj nunca se detiene: cada bento servido hereda el tiempo sobrante más un bonus que mengua con las rondas. Las cajas crecen de 4×3 hasta 8×7 y se guardan los récords de bentos servidos y de puntos. | Nivel 2 |
+
+---
+
+## 🍱 Campaña: 24 niveles en tres temporadas
+
+| Temporada | Niveles | Progresión |
+| --- | --- | --- |
+| **Primera temporada** | 1–8 | Desde una caja 4×3 de cinco piezas hasta cajas de 7×6. Enseña a colocar, rotar y equilibrar colores. |
+| **Segunda temporada** | 9–16 | Cajas de 6×5 a 8×7, terminando en el **Bento del maestro** (56 celdas, 16 compartimentos, 20 piezas). |
+| **Retos del chef** | 17–24 | Ocho cajas expertas de semilla fija, de 7×6 a 8×7, con goshiki completo obligatorio. Culminan en **La mesa de Mochi**. |
+
+Todas las teselaciones están **verificadas celda a celda**: cada nivel tiene solución exacta sin huecos, sin solapes y con pedidos siempre alcanzables.
+
+### 🎲 Generación procedural
+
+El generador (`src/game/generator.ts`) **nunca produce una caja imposible**, porque construye el puzzle al revés:
+
+1. Parte la rejilla en compartimentos rectangulares mediante división recursiva con semilla.
+2. Tesela cada compartimento con piezas reales por *backtracking* (la pieza 1×1 garantiza siempre el cierre).
+3. La bandeja nace de esa teselación, así que la solución está asegurada.
+4. El pedido del cliente se construye solo con piezas que realmente existen en la caja.
+
+Con la misma semilla sale exactamente la misma caja, y por eso los **Retos del chef** son estables partida tras partida.
 
 ---
 
 ## 🐭 La Mascota: Mochi el Ratón Chef
 
-Dibujado 100% en SVG vectorial interactivo:
-- Orejas redondas grandes con interior rosado.
-- Bigotes, hocico y dientecito de ratón característico.
-- Delantal de cocina y cinta hachimaki roja tradicional.
-- Reacciones en vivo: parpadea de forma natural, sonríe, se preocupa con movimientos erróneos y alza sus patitas celebrando cuando completas la caja.
+Dibujado 100% en SVG vectorial interactivo, con proporciones chibi:
+
+- Orejas redondas grandes con interior rosado que se menean al ritmo de su ánimo.
+- Ojos enormes con doble brillo, naricita de corazón y boquita «w» de ratón.
+- Mejillas sonrojadas, bigotes finos y colita en espiral que se balancea.
+- Gorrito de chef ladeado con cinta hachimaki roja y delantal con bolsillo de corazón.
+- Reacciones en vivo: parpadea de forma natural, sonríe, se preocupa con movimientos erróneos y alza sus patitas entre chispas doradas cuando cierras la caja.
+
+---
+
+## 📱 Diseño responsive
+
+- **Celular vertical**: pedido compacto arriba, caja al centro y bandeja deslizable abajo.
+- **Celular horizontal**: modo denso automático que encoge fichas, botones y paneles, nunca la caja.
+- **Tablet y escritorio**: tres columnas con pedido a la izquierda, caja al centro y bandeja a la derecha.
+- La caja bento **siempre es el elemento más grande** de la pantalla: su tamaño se calcula con la geometría exacta del marco para que jamás desborde su contenedor.
+- HUD flotante en pastillas translúcidas, objetivos táctiles de 44 px, `h-dvh` sin scroll y respeto por `prefers-reduced-motion`.
 
 ---
 
@@ -80,9 +124,10 @@ Dibujado 100% en SVG vectorial interactivo:
     ├── main.tsx           # Punto de entrada de React
     ├── game/
     │   ├── balance.ts     # Puntuaciones, bonos y umbrales de estrellas
+    │   ├── generator.ts   # Cajas procedurales del modo Carrera y retos
     │   ├── ingredients.ts # Catálogo de 13 ingredientes con formas y goshiki
     │   ├── layout.ts      # Geometría exacta de la caja (cero desbordes)
-    │   ├── levels.ts      # Definición teselada de los 8 niveles
+    │   ├── levels.ts      # Campaña teselada de 24 niveles
     │   ├── logic.ts       # Poliominós, rotación, validación e imán
     │   ├── sound.ts       # Motor de audio ASMR WebAudio 100% sintetizado
     │   ├── storage.ts     # Persistencia local con respaldo en memoria
@@ -101,10 +146,11 @@ Dibujado 100% en SVG vectorial interactivo:
     │   ├── PieceTray.tsx  # Bandeja con scroll nativo y slots uniformes
     │   └── Sakura.tsx     # Partículas de pétalos de cerezo
     └── screens/
+        ├── CareerEnd.tsx    # Resumen y récords del modo Carrera
         ├── GameScreen.tsx   # Pantalla principal con los tres modos de layout
-        ├── LevelSelect.tsx  # Selector con miniaturas de los bentos
+        ├── LevelSelect.tsx  # Carta scrolleable de los 24 bentos
         ├── ResultScreen.tsx # Ceremonia de cierre ASMR y puntuación
-        └── StartScreen.tsx  # Portada con selector de modo Zen / Servicio
+        └── StartScreen.tsx  # Portada con selector de modo y Carrera
 ```
 
 ---

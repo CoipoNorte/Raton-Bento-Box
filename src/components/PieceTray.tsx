@@ -1,21 +1,24 @@
 /**
  * PieceTray — La tabla de preparación.
- * Sin `drag` de Framer: gesto propio (useTapSinArrastre) donde el SCROLL
- * NATIVO manda a lo largo del eje de la bandeja y el arrastre nace al
- * moverse hacia la caja. Tocar sin arrastrar rota (rotación animada).
  *
- * Cada pieza se ESCALA para caber en un slot uniforme: una pieza de 3
- * celdas nunca deforma la bandeja ni se sale de su recuadro.
+ * Dos cuidados críticos aquí:
+ *  1. SENTIDO DE GIRO. La lógica del juego (`rotarForma`) gira en
+ *     sentido ANTIHORARIO. Si la vista previa girase con el `rotate`
+ *     positivo de CSS (horario), el onigiri y la tempura se verían en
+ *     una orientación distinta a la que se coloca. Por eso animamos
+ *     con `-rotacion * 90`: lo que ves es exactamente lo que encaja.
+ *  2. AGARRE. La celda agarrada se calcula desde el CENTRO del slot
+ *     (que no rota ni se deforma), nunca midiendo el elemento girado.
  */
 import { motion } from "framer-motion";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { celdasDe } from "../game/logic";
 import type { PiezaInst } from "../game/types";
 import { useTapSinArrastre } from "../hooks/useTapSinArrastre";
-import type { Punto } from "../hooks/useTapSinArrastre";
+import type { Agarre, Punto } from "../hooks/useTapSinArrastre";
 import { FoodSVG } from "./FoodSVG";
 
-export type { Punto };
+export type { Agarre, Punto };
 
 interface Props {
   piezas: PiezaInst[]; // solo las que están en la bandeja
@@ -29,7 +32,7 @@ interface Props {
   arrastrandoUid?: string | null;
   /** true congela la bandeja (tutorial, pausa, resultados). */
   bloqueado?: boolean;
-  onIniciarArrastre: (uid: string, punto: Punto) => void;
+  onIniciarArrastre: (uid: string, punto: Punto, agarre: Agarre) => void;
   onMoverArrastre: (punto: Punto) => void;
   onSoltarArrastre: (punto: Punto) => void;
   onCancelarArrastre: () => void;
@@ -38,6 +41,62 @@ interface Props {
 
 /** Lado máximo de un slot, en múltiplos de celda: mantiene la fila regular. */
 const EXTENSION_MAX = 2.4;
+
+/** Dimensiones de la pieza YA rotada y su escala dentro del slot. */
+function metricas(pieza: PiezaInst, celda: number) {
+  const celdas = celdasDe(pieza);
+  const bw = Math.max(...celdas.map(([x]) => x)) + 1;
+  const bh = Math.max(...celdas.map(([, y]) => y)) + 1;
+  const celdaPieza = Math.floor(
+    Math.min(celda, (celda * EXTENSION_MAX) / Math.max(bw, bh)),
+  );
+  return { bw, bh, celdaPieza };
+}
+
+const limitar = (v: number, min: number, max: number) =>
+  Math.min(Math.max(v, min), max);
+
+/**
+ * Vista previa de una pieza en la bandeja.
+ *
+ * Dibuja el arte YA ROTADO (el mismo que usan el tablero y la pieza en
+ * vuelo), así los detalles coinciden al píxel: el sésamo, el nori, las
+ * capas del tamagoyaki o la cola del langostino salen igual que al
+ * colocarla. El giro se sigue viendo animado: al cambiar la rotación,
+ * la pieza entra desde +90° y cae en su sitio con muelle.
+ */
+function VistaPieza({
+  pieza,
+  celda,
+  resaltada,
+}: {
+  pieza: PiezaInst;
+  celda: number;
+  resaltada: boolean;
+}) {
+  const anterior = useRef(pieza.rotacion);
+  const giro = anterior.current !== pieza.rotacion;
+  useEffect(() => {
+    anterior.current = pieza.rotacion;
+  }, [pieza.rotacion]);
+
+  return (
+    <motion.div
+      key={pieza.rotacion}
+      className="flex items-center justify-center"
+      initial={giro ? { rotate: 90, scale: 0.88 } : false}
+      animate={{ rotate: 0, scale: 1 }}
+      transition={{ type: "spring", stiffness: 340, damping: 20 }}
+    >
+      <motion.div
+        animate={resaltada ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+        transition={resaltada ? { duration: 0.9, repeat: Infinity } : { duration: 0.2 }}
+      >
+        <FoodSVG id={pieza.ingrediente} celda={celda} rotacion={pieza.rotacion} />
+      </motion.div>
+    </motion.div>
+  );
+}
 
 export function PieceTray({
   piezas,
@@ -53,10 +112,37 @@ export function PieceTray({
   onCancelarArrastre,
   onTapPieza,
 }: Props) {
+  const contenedorRef = useRef<HTMLDivElement | null>(null);
+  // Las piezas vivas se consultan desde el gesto sin recrear escuchas.
+  const piezasRef = useRef(piezas);
+  piezasRef.current = piezas;
+
   const { bajar } = useTapSinArrastre({
     ejeBandeja: vertical ? "y" : "x",
-    umbral: 8,
-    alIniciarArrastre: onIniciarArrastre,
+    umbral: 7,
+    contenedorRef,
+    alIniciarArrastre: (uid, punto) => {
+      const pieza = piezasRef.current.find((p) => p.uid === uid);
+      if (!pieza) return;
+      const { bw, bh, celdaPieza } = metricas(pieza, celda);
+      const slot = contenedorRef.current?.querySelector<HTMLElement>(
+        `[data-pieza="${uid}"]`,
+      );
+      // Por defecto, agarre por el centro de la pieza.
+      let fx = bw / 2;
+      let fy = bh / 2;
+      const r = slot?.getBoundingClientRect();
+      if (r && celdaPieza > 0) {
+        // El centro del slot es estable aunque haya hover o escala.
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const izq = cx - (bw * celdaPieza) / 2;
+        const arr = cy - (bh * celdaPieza) / 2;
+        fx = limitar((punto.x - izq) / celdaPieza, 0, bw);
+        fy = limitar((punto.y - arr) / celdaPieza, 0, bh);
+      }
+      onIniciarArrastre(uid, punto, { fx, fy });
+    },
     alMover: onMoverArrastre,
     alSoltar: onSoltarArrastre,
     alCancelar: onCancelarArrastre,
@@ -67,9 +153,7 @@ export function PieceTray({
   const relleno = Math.max(8, Math.round(celda * 0.26));
   const slot = Math.round(celda * EXTENSION_MAX) + relleno;
 
-  // ¿La bandeja desborda? Si NO hay scroll que proteger, el dedo queda
-  // libre para arrastrar en cualquier dirección (touch-action: none).
-  const contenedorRef = useRef<HTMLDivElement | null>(null);
+  // Pista visual: avisamos de que la bandeja se puede recorrer.
   const [desplazable, setDesplazable] = useState(false);
   useLayoutEffect(() => {
     const el = contenedorRef.current;
@@ -86,8 +170,6 @@ export function PieceTray({
     return () => obs.disconnect();
   }, [vertical, piezas.length, celda]);
 
-  const accionTactil = bloqueado ? "none" : !desplazable ? "none" : vertical ? "pan-y" : "pan-x";
-
   return (
     <div
       ref={contenedorRef}
@@ -96,17 +178,16 @@ export function PieceTray({
           ? "flex h-full w-full flex-col items-center gap-2 overflow-x-hidden overflow-y-auto p-2 [scrollbar-width:thin]"
           : "flex h-full w-full flex-row items-center gap-2 overflow-x-auto overflow-y-hidden p-2 [scrollbar-width:thin]"
       }
-      style={{ WebkitOverflowScrolling: "touch" }}
+      style={{
+        WebkitOverflowScrolling: "touch",
+        // Si hay recorrido, el gesto paralelo lo desplazamos a mano.
+        scrollBehavior: "auto",
+      }}
       onContextMenu={(e) => e.preventDefault()}
+      title={desplazable ? "Desliza para ver más ingredientes" : undefined}
     >
       {piezas.map((p) => {
-        const celdas = celdasDe(p);
-        const bw = Math.max(...celdas.map(([x]) => x)) + 1;
-        const bh = Math.max(...celdas.map(([, y]) => y)) + 1;
-        // Escala para que la pieza quepa entera en el slot.
-        const celdaPieza = Math.floor(
-          Math.min(celda, (celda * EXTENSION_MAX) / Math.max(bw, bh)),
-        );
+        const { celdaPieza } = metricas(p, celda);
         const enVuelo = arrastrandoUid === p.uid;
         return (
           <motion.div
@@ -122,9 +203,9 @@ export function PieceTray({
                   ? "2.5px solid #d97706"
                   : "2px solid rgba(150,120,70,0.25)",
               boxShadow: "0 3px 8px rgba(90,60,20,0.12)",
-              // El eje de la bandeja se lo dejamos al scroll nativo…
-              // salvo que no haya nada que desplazar.
-              touchAction: accionTactil,
+              // Nada de pan-x/pan-y: el navegador ya no nos roba el
+              // gesto. El scroll de la bandeja lo movemos nosotros.
+              touchAction: "none",
               opacity: enVuelo ? 0.25 : 1,
             }}
             animate={{ scale: enVuelo ? 0.92 : 1 }}
@@ -133,22 +214,8 @@ export function PieceTray({
             onPointerDown={bloqueado ? undefined : (e) => bajar(p.uid, e)}
             title="Arrastrar hacia la caja · Tocar para rotar"
           >
-            {/* La rotación se ve animada gracias a este envoltorio */}
-            <motion.div
-              data-comida={p.uid}
-              className="flex items-center justify-center"
-              animate={{ rotate: p.rotacion * 90 }}
-              transition={{ type: "spring", stiffness: 380, damping: 22 }}
-            >
-              <motion.div
-                animate={pistaUid === p.uid ? { scale: [1, 1.12, 1] } : { scale: 1 }}
-                transition={
-                  pistaUid === p.uid ? { duration: 0.9, repeat: Infinity } : { duration: 0.2 }
-                }
-              >
-                <FoodSVG id={p.ingrediente} celda={celdaPieza} />
-              </motion.div>
-            </motion.div>
+            {/* Arte idéntico al del tablero: lo que ves es lo que colocas */}
+            <VistaPieza pieza={p} celda={celdaPieza} resaltada={pistaUid === p.uid} />
           </motion.div>
         );
       })}
