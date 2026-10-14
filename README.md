@@ -1,4 +1,4 @@
-# 🐭 Ratón Bento Box (Bento Box Master)
+# 🐭 [Ratón Bento Box](https://coiponorte.github.io/Raton-Bento-Box/)
 
 ![Stack](https://img.shields.io/badge/React_19-TypeScript-61dafb?logo=react&logoColor=white)
 ![Build](https://img.shields.io/badge/Vite_7-Tailwind_4-a855f7?logo=vite&logoColor=white)
@@ -59,56 +59,6 @@ Dibujado 100% en SVG vectorial interactivo:
 - Bigotes, hocico y dientecito de ratón característico.
 - Delantal de cocina y cinta hachimaki roja tradicional.
 - Reacciones en vivo: parpadea de forma natural, sonríe, se preocupa con movimientos erróneos y alza sus patitas celebrando cuando completas la caja.
-
----
-
-## 🚀 Despliegue automático en un clic (`deploy.bat`)
-
-El archivo **`deploy.bat`** automatiza el ciclo completo para Windows.
-Es **autocontenido** (no necesita ningún otro archivo), no usa `goto` ni
-paréntesis dentro de bloques `if`, y guarda finales de línea CRLF:
-
-1. Comprueba Node.js y npm.
-2. Comprueba Git, inicializa el repo y apunta `origin` a `https://github.com/CoipoNorte/Raton-Bento-Box.git` (rama `main`).
-3. Crea el `.gitignore` si no existe.
-4. Agrega los scripts `"predeploy": "npm run build"` y `"deploy": "gh-pages -d dist"` a `package.json` con `node -e`.
-5. Fija `base: '/Raton-Bento-Box/'` en `vite.config.ts`.
-6. `npm install` e instala **`gh-pages`** como dependencia de desarrollo.
-7. `npm run build` generando la carpeta `dist` (y la verifica).
-8. `git add -A` + `git commit` automático **solo si hay cambios**.
-9. `git push -u origin main` subiendo todo el código fuente.
-10. `npm run deploy` publicando `dist` en la rama `gh-pages` (con reintento vía `npx gh-pages -d dist`).
-11. Verifica la rama `gh-pages` remota y muestra el resumen final.
-
-### Para ejecutarlo:
-Solo haz doble clic sobre **`deploy.bat`** o ejecútalo en la terminal:
-```cmd
-deploy.bat
-```
-
-> **Configuración en GitHub (solo la primera vez):**
-> Ve a `Settings` > `Pages` en el repositorio:
-> - **Source**: `Deploy from a branch`
-> - **Branch**: `gh-pages` / `(root)`
-> - Pulsa **Save**. En un par de minutos estará disponible en `https://coiponorte.github.io/Raton-Bento-Box/`.
-
----
-
-## 🛠️ Desarrollo local
-
-```bash
-# 1. Instalar dependencias
-npm install
-
-# 2. Servidor de desarrollo local
-npm run dev
-
-# 3. Compilar para producción
-npm run build
-
-# 4. Vista previa de producción
-npm run preview
-```
 
 ---
 
