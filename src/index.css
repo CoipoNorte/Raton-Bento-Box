@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* Tailwind 4 (CSS-first): tipografía redondeada japonesa */
+@theme {
+  --font-sans: "M PLUS Rounded 1c", "Zen Maru Gothic", "Hiragino Maru Gothic ProN",
+    ui-rounded, "Segoe UI", system-ui, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: #f7f1e3;
+  /* Nada de scroll accidental ni rebote elástico en móvil */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+body {
+  font-family: var(--font-sans);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Scrollbars finas y acordes al tema (bandejas) */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(150, 120, 70, 0.35);
+  border-radius: 99px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Respeta prefers-reduced-motion a nivel global */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
