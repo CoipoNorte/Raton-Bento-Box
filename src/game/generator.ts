@@ -182,14 +182,23 @@ export interface OpcionesCarrera {
   /** Ronda actual (1, 2, 3…): escala el tamaño y el tiempo. */
   ronda: number;
   semilla: number;
+  /** Tope de columnas (8 por defecto; la campaña final llega a 9). */
+  maxCols?: number;
+  /** Tope de filas (7 por defecto). */
+  maxRows?: number;
 }
 
 /** Tamaño de caja según la ronda: crece con suavidad y se estabiliza. */
-function dimensiones(r: Azar, ronda: number): { cols: number; rows: number } {
-  const escalon = Math.min(Math.floor((ronda - 1) / 2), 5);
-  const base = 4 + escalon; // 4..9
-  const cols = Math.min(8, base + (r() < 0.5 ? 0 : 1));
-  const rows = Math.min(7, Math.max(3, base - (r() < 0.5 ? 1 : 0)));
+function dimensiones(
+  r: Azar,
+  ronda: number,
+  maxCols: number,
+  maxRows: number,
+): { cols: number; rows: number } {
+  const escalon = Math.min(Math.floor((ronda - 1) / 2), 6);
+  const base = 4 + escalon; // 4..10
+  const cols = Math.min(maxCols, base + (r() < 0.5 ? 0 : 1));
+  const rows = Math.min(maxRows, Math.max(3, base - (r() < 0.5 ? 1 : 0)));
   return { cols, rows };
 }
 
@@ -198,10 +207,15 @@ function dimensiones(r: Azar, ronda: number): { cols: number; rows: number } {
  * Reintenta con semillas derivadas si una partición resultara imposible
  * (en la práctica no ocurre, pero el juego nunca debe quedarse atascado).
  */
-export function generarNivelCarrera({ ronda, semilla }: OpcionesCarrera): NivelDef {
+export function generarNivelCarrera({
+  ronda,
+  semilla,
+  maxCols = 8,
+  maxRows = 7,
+}: OpcionesCarrera): NivelDef {
   for (let intento = 0; intento < 12; intento++) {
     const r = mulberry32(semilla + intento * 7919);
-    const { cols, rows } = dimensiones(r, ronda);
+    const { cols, rows } = dimensiones(r, ronda, maxCols, maxRows);
     const maxLado = ronda < 4 ? 3 : 4;
     const rects = partir(r, { x: 0, y: 0, w: cols, h: rows }, maxLado, 0);
 

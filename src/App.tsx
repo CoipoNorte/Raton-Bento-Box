@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { generarNivelCarrera } from "./game/generator";
-import { NIVELES, nivelPorId } from "./game/levels";
+import { TOTAL_NIVELES, nivelPorId } from "./game/levels";
 import {
   guardarPreferencias,
   obtenerPreferencias,
@@ -69,7 +69,7 @@ export default function App() {
 
   const cuandoCompleta = useCallback(
     (nivelId: number, estrellas: number, puntos: number) => {
-      setProgreso(registrarEstrellas(nivelId, estrellas, puntos, NIVELES.length));
+      setProgreso(registrarEstrellas(nivelId, estrellas, puntos, TOTAL_NIVELES));
     },
     [],
   );
@@ -170,13 +170,13 @@ export default function App() {
           nivel={nivelPorId(pantalla.nivelId)}
           prefs={prefs}
           modoJuego={prefs.modo}
-          esUltimo={pantalla.nivelId >= NIVELES.length}
+          esUltimo={pantalla.nivelId >= TOTAL_NIVELES}
           onSalir={() => setPantalla({ tipo: "niveles" })}
           onCompletado={cuandoCompleta}
           onSiguiente={() =>
             setPantalla({
               tipo: "juego",
-              nivelId: Math.min(pantalla.nivelId + 1, NIVELES.length),
+              nivelId: Math.min(pantalla.nivelId + 1, TOTAL_NIVELES),
             })
           }
           onAlternarSonido={() => setPrefs((p) => ({ ...p, sonido: !p.sonido }))}
