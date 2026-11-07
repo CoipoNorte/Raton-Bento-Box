@@ -117,6 +117,8 @@ export interface Progreso {
   /** Récords del modo Carrera. */
   mejorRondaCarrera: number;
   mejorPuntosCarrera: number;
+  /** Récord del modo infinito Bento Pop. */
+  mejorPuntosPop: number;
 }
 
 /** Modos de juego disponibles. */

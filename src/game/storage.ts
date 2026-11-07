@@ -65,6 +65,7 @@ const PROGRESO_INICIAL: Progreso = {
   puntosTotales: 0,
   mejorRondaCarrera: 0,
   mejorPuntosCarrera: 0,
+  mejorPuntosPop: 0,
 };
 const PREFS_INICIALES: Preferencias = { sonido: true, ambiente: false, modo: "zen" };
 
@@ -97,6 +98,15 @@ export function registrarCarrera(ronda: number, puntos: number): Progreso {
   const p = obtenerProgreso();
   p.mejorRondaCarrera = Math.max(p.mejorRondaCarrera ?? 0, ronda);
   p.mejorPuntosCarrera = Math.max(p.mejorPuntosCarrera ?? 0, puntos);
+  p.puntosTotales += puntos;
+  guardarProgreso(p);
+  return p;
+}
+
+/** Guarda el récord del modo Bento Pop. */
+export function registrarBentoPop(puntos: number): Progreso {
+  const p = obtenerProgreso();
+  p.mejorPuntosPop = Math.max(p.mejorPuntosPop ?? 0, puntos);
   p.puntosTotales += puntos;
   guardarProgreso(p);
   return p;

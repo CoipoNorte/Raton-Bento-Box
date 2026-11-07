@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import {
   CloudRain,
   Infinity as IconoInfinito,
+  Grid3X3,
   Lock as IconoCandado,
   Play,
   Star,
@@ -26,8 +27,11 @@ interface Props {
   servicioDesbloqueado: boolean;
   carreraDesbloqueada: boolean;
   mejorRondaCarrera: number;
+  popDesbloqueado: boolean;
+  mejorPuntosPop: number;
   onJugar: () => void;
   onCarrera: () => void;
+  onBentoPop: () => void;
   onPreferencias: (p: Preferencias) => void;
 }
 
@@ -37,8 +41,11 @@ export function StartScreen({
   servicioDesbloqueado,
   carreraDesbloqueada,
   mejorRondaCarrera,
+  popDesbloqueado,
+  mejorPuntosPop,
   onJugar,
   onCarrera,
+  onBentoPop,
   onPreferencias,
 }: Props) {
   const vp = useViewport();
@@ -115,28 +122,46 @@ export function StartScreen({
           <Play size={22} className="fill-current" /> Jugar
         </motion.button>
 
-        {/* Modo Carrera: cajas infinitas generadas al vuelo */}
-        <motion.button
-          onClick={carreraDesbloqueada ? onCarrera : undefined}
-          disabled={!carreraDesbloqueada}
-          className={`flex h-12 items-center gap-2 rounded-full border-2 px-6 text-sm font-black transition-colors ${
-            carreraDesbloqueada
-              ? "border-[#5c9a4e] bg-[#5c9a4e]/15 text-[#44752f]"
-              : "border-[#d8c8a4] bg-white/50 text-[#b3a586]"
-          }`}
-          whileHover={carreraDesbloqueada ? { scale: 1.04 } : {}}
-          whileTap={carreraDesbloqueada ? { scale: 0.94 } : {}}
-          title={carreraDesbloqueada ? "Cajas infinitas contrarreloj" : "Completa el nivel 2 para desbloquear"}
-        >
-          <IconoInfinito size={18} strokeWidth={2.8} />
-          Modo Carrera
-          {carreraDesbloqueada && mejorRondaCarrera > 0 && (
-            <span className="rounded-full bg-[#44752f] px-2 py-0.5 text-[10px] text-white">
-              {mejorRondaCarrera}
-            </span>
-          )}
-          {!carreraDesbloqueada && <IconoCandado size={14} />}
-        </motion.button>
+        {/* Modos infinitos */}
+        <div className="flex max-w-full flex-wrap justify-center gap-2">
+          <motion.button
+            onClick={carreraDesbloqueada ? onCarrera : undefined}
+            disabled={!carreraDesbloqueada}
+            className={`flex h-12 items-center gap-2 rounded-full border-2 px-4 text-xs font-black transition-colors ${
+              carreraDesbloqueada
+                ? "border-[#5c9a4e] bg-[#5c9a4e]/15 text-[#44752f]"
+                : "border-[#d8c8a4] bg-white/50 text-[#b3a586]"
+            }`}
+            whileHover={carreraDesbloqueada ? { scale: 1.04 } : {}}
+            whileTap={carreraDesbloqueada ? { scale: 0.94 } : {}}
+            title={carreraDesbloqueada ? "Cajas infinitas contrarreloj" : "Completa el nivel 2"}
+          >
+            <IconoInfinito size={17} strokeWidth={2.8} /> Carrera
+            {carreraDesbloqueada && mejorRondaCarrera > 0 && (
+              <span className="rounded-full bg-[#44752f] px-2 py-0.5 text-[9px] text-white">{mejorRondaCarrera}</span>
+            )}
+            {!carreraDesbloqueada && <IconoCandado size={13} />}
+          </motion.button>
+
+          <motion.button
+            onClick={popDesbloqueado ? onBentoPop : undefined}
+            disabled={!popDesbloqueado}
+            className={`flex h-12 items-center gap-2 rounded-full border-2 px-4 text-xs font-black transition-colors ${
+              popDesbloqueado
+                ? "border-[#d99a3d] bg-[#f2c14e]/18 text-[#9a651c]"
+                : "border-[#d8c8a4] bg-white/50 text-[#b3a586]"
+            }`}
+            whileHover={popDesbloqueado ? { scale: 1.04 } : {}}
+            whileTap={popDesbloqueado ? { scale: 0.94 } : {}}
+            title={popDesbloqueado ? "Sirve líneas de comida" : "Completa el nivel 3"}
+          >
+            <Grid3X3 size={17} /> Bento Pop
+            {popDesbloqueado && mejorPuntosPop > 0 && (
+              <span className="rounded-full bg-[#b8860b] px-2 py-0.5 text-[9px] text-white">{mejorPuntosPop.toLocaleString("es")}</span>
+            )}
+            {!popDesbloqueado && <IconoCandado size={13} />}
+          </motion.button>
+        </div>
 
         {estrellasTotales > 0 && (
           <div className="flex items-center gap-1.5 rounded-full bg-[#f2c14e]/25 px-3 py-1 text-sm font-black text-[#b8860b]">

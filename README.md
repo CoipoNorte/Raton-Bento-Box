@@ -4,7 +4,7 @@
 ![Build](https://img.shields.io/badge/Vite_7-Tailwind_4-a855f7?logo=vite&logoColor=white)
 ![Motion](https://img.shields.io/badge/Framer_Motion-Lucide-f472b6)
 ![Audio](https://img.shields.io/badge/WebAudio-100%25_sintetizado-f2c14e)
-![Niveles](https://img.shields.io/badge/72_niveles-+_modo_infinito-a03127)
+![Niveles](https://img.shields.io/badge/72_niveles-+_2_modos_infinitos-a03127)
 ![Deploy](https://img.shields.io/badge/GitHub_Pages-listo-2ea44f?logo=github)
 
 Un juego acogedor y ultra relajante de organización donde preparas cajas bento encajando ingredientes como un rompecabezas, buscando el **encaje perfecto sin huecos**, con sonido **ASMR WebAudio sintetizado** y acompañado por **Mochi, el simpático ratoncito chef**.
@@ -58,6 +58,25 @@ Un juego acogedor y ultra relajante de organización donde preparas cajas bento 
 | 🧘 **Zen** | Sin límite de tiempo. Pura organización y ASMR. | Desde el inicio |
 | ⏱️ **Servicio del día** | Los 72 niveles contrarreloj, con barra ultrafina de 5 px pegada al borde superior que se vuelve roja en los últimos 10 segundos. | Nivel 3 |
 | ♾️ **Carrera** | **Cajas infinitas generadas proceduralmente.** El reloj nunca se detiene: cada bento servido hereda el tiempo sobrante más un bonus que mengua con las rondas. Las cajas crecen de 4×3 hasta 8×7 y se guardan los récords de bentos servidos y de puntos. | Nivel 2 |
+| 🧩 **Bento Pop** | Puzzle contrarreloj con **caja que crece**: empiezas en 2×2 y la caja gana una fila y una columna por cada lado (2×2 → 4×4 → 6×6 → 8×8) conforme sirves líneas. Arrancas con **2:59**; cada línea suma **+15 s** y el cuadro dorado central **+2 s**. | Nivel 3 |
+
+### 🧩 Bento Pop
+
+**La caja crece contigo.** Empiezas en un 2×2 diminuto y cada vez que cubres el cupo de líneas de esa talla, la caja se amplía una fila y una columna **por cada lado**, recentrando lo ya colocado:
+
+| Talla | Líneas para crecer | Piezas admitidas |
+| --- | --- | --- |
+| 2×2 | 2 | Solo las que caben; el sashimi 1×3 aún no aparece |
+| 4×4 | 4 | Catálogo completo |
+| 6×6 | 6 | Catálogo completo |
+| 8×8 | — (talla máxima) | Supervivencia pura |
+
+- **Reloj:** la partida arranca con **2:59**. Cada línea de extremo a extremo suma **+15 s** y vaciar el cuadro dorado central suma **+2 s**. Se acaba al llegar a cero o cuando no cabe ninguna pieza.
+- **Atajo exprés:** si llenas la caja por completo, se amplía al instante. En 2×2 basta con encajar un bloque de arroz.
+- Tres piezas por tanda: **arrastra** para colocar y **toca** para rotar.
+- El generador solo reparte piezas que quepan en la talla actual y garantiza al menos una utilizable mientras exista algún movimiento: nunca pierdes por una bandeja injusta.
+- Controles: toque/arrastre, teclado (flechas, `Enter`, `R`, `1–3`, `Q/E`) y mando (D-pad, A, B, LB/RB).
+- Combos por limpiezas encadenadas, récord persistente y tutorial propio con Mochi.
 
 ---
 
@@ -162,6 +181,7 @@ npm run preview # previsualizar la build
     ├── main.tsx           # Punto de entrada de React
     ├── game/
     │   ├── balance.ts     # Puntuaciones, bonos y umbrales de estrellas
+    │   ├── bentoPop.ts    # Caja creciente, líneas, centro, reloj y bandejas
     │   ├── generator.ts   # Cajas procedurales del modo Carrera y la campaña
     │   ├── ingredients.ts # Catálogo de 13 ingredientes con formas y goshiki
     │   ├── layout.ts      # Geometría exacta de la caja (cero desbordes)
@@ -175,20 +195,23 @@ npm run preview # previsualizar la build
     │   └── useViewport.ts       # Detección responsiva de pantalla
     ├── components/
     │   ├── BentoBox.tsx   # Rejilla, marco de laca, compartimentos y piezas
+    │   ├── BentoPopBoard.tsx # Caja 2×2→8×8, fantasmas y liberaciones
     │   ├── ColorMeter.tsx # Medidor goshiki de 5 colores
     │   ├── Fondo.tsx      # Textura washi, gradientes suaves y vapor
     │   ├── FoodSVG.tsx    # Ilustraciones vectoriales procedurales con clipPath
+    │   ├── FoodCellSVG.tsx # Bocados procedurales compactos para Bento Pop
     │   ├── HUD.tsx        # Pastillas flotantes para pausa, nivel y volumen
     │   ├── Mascot.tsx     # Mochi, el ratón chef en SVG interactivo
     │   ├── OrderCard.tsx  # Tarjeta visual con pedidos en iconos
     │   ├── PieceTray.tsx  # Bandeja con scroll nativo y slots uniformes
     │   └── Sakura.tsx     # Partículas de pétalos de cerezo
     └── screens/
+        ├── BentoPopScreen.tsx # Modo contrarreloj de caja creciente
         ├── CareerEnd.tsx    # Resumen y récords del modo Carrera
-        ├── GameScreen.tsx   # Pantalla principal con los tres modos de layout
+        ├── GameScreen.tsx   # Pantalla principal responsive de campaña/Carrera
         ├── LevelSelect.tsx  # Carta scrolleable de los 72 bentos
         ├── ResultScreen.tsx # Ceremonia de cierre ASMR y puntuación
-        └── StartScreen.tsx  # Portada con selector de modo y Carrera
+        └── StartScreen.tsx  # Portada, campaña y modos infinitos
 ```
 
 ---

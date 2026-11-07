@@ -13,6 +13,7 @@ import {
   obtenerPreferencias,
   obtenerProgreso,
   registrarCarrera,
+  registrarBentoPop,
   registrarEstrellas,
 } from "./game/storage";
 import { ambiente, inicializarAudio, setSilencio } from "./game/sound";
@@ -20,6 +21,7 @@ import * as snd from "./game/sound";
 import type { Preferencias, Progreso } from "./game/types";
 
 import { CareerEnd } from "./screens/CareerEnd";
+import { BentoPopScreen } from "./screens/BentoPopScreen";
 import { GameScreen } from "./screens/GameScreen";
 import { LevelSelect } from "./screens/LevelSelect";
 import { StartScreen } from "./screens/StartScreen";
@@ -32,6 +34,7 @@ type Pantalla =
   | { tipo: "niveles" }
   | { tipo: "juego"; nivelId: number }
   | { tipo: "carrera" }
+  | { tipo: "bentoPop" }
   | { tipo: "carreraFin"; rondas: number; puntos: number; esRecord: boolean };
 
 /** Estado vivo de una partida de Carrera. */
@@ -140,6 +143,7 @@ export default function App() {
   const estrellasTotales = Object.values(progreso.estrellas).reduce((a, b) => a + b, 0);
   const servicioDesbloqueado = progreso.nivelMax >= 4;
   const carreraDesbloqueada = progreso.nivelMax >= 3;
+  const popDesbloqueado = progreso.nivelMax >= 4;
 
   return (
     <div className="h-dvh w-full overflow-hidden bg-[#f7f1e3] font-sans">
@@ -150,8 +154,11 @@ export default function App() {
           servicioDesbloqueado={servicioDesbloqueado}
           carreraDesbloqueada={carreraDesbloqueada}
           mejorRondaCarrera={progreso.mejorRondaCarrera ?? 0}
+          popDesbloqueado={popDesbloqueado}
+          mejorPuntosPop={progreso.mejorPuntosPop ?? 0}
           onJugar={() => setPantalla({ tipo: "niveles" })}
           onCarrera={empezarCarrera}
+          onBentoPop={() => setPantalla({ tipo: "bentoPop" })}
           onPreferencias={actualizarPrefs}
         />
       )}
@@ -217,6 +224,14 @@ export default function App() {
           esRecord={pantalla.esRecord}
           onReintentar={empezarCarrera}
           onSalir={() => setPantalla({ tipo: "inicio" })}
+        />
+      )}
+
+      {pantalla.tipo === "bentoPop" && (
+        <BentoPopScreen
+          mejor={progreso.mejorPuntosPop ?? 0}
+          onSalir={() => setPantalla({ tipo: "inicio" })}
+          onFin={(puntos) => setProgreso(registrarBentoPop(puntos))}
         />
       )}
     </div>
