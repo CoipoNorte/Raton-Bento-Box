@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#a03127" />
+    <meta
+      name="description"
+      content="Ratón Bento Box — un puzzle zen de empaquetar bentos: encaja ingredientes junto a Mochi el ratón chef, equilibra los cinco colores y cierra la tapa con el clic perfecto."
+    />
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <title>Ratón Bento Box — Puzzle zen de organización</title>
+    <style>
+      /* Splash: visible hasta que React monta. Si se congela, hay error de JS;
+         si no aparece nada, es caché o la rama de Pages está mal. */
+      #splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        background: linear-gradient(180deg, #f7f1e3 0%, #f3ead6 100%);
+        color: #8a7a5c;
+        font-family: "M PLUS Rounded 1c", system-ui, sans-serif;
+      }
+      #splash .caja {
+        width: 72px;
+        height: 56px;
+        border-radius: 14px;
+        background: #a03127;
+        box-shadow: inset 0 4px 0 rgba(255, 255, 255, 0.18);
+        animation: respirar 1.6s ease-in-out infinite;
+      }
+      #splash .caja::after {
+        content: "";
+        display: block;
+        width: 80px;
+        height: 12px;
+        margin: -6px -4px 0;
+        border-radius: 99px;
+        background: #6d1f18;
+      }
+      #splash p {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        margin: 0;
+      }
+      @keyframes respirar {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.06); }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <!-- Pantalla de carga: React la sustituye al montar -->
+      <div id="splash" role="status">
+        <div class="caja"></div>
+        <p>Preparando los ingredientes…</p>
+      </div>
+    </div>
+    <noscript>
+      <div style="padding: 2rem; text-align: center; font-family: system-ui">
+        Bento Box Master necesita JavaScript para funcionar. Actívalo y recarga
+        la página, ¡la cocina te espera!
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
