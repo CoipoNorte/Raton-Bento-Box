@@ -154,7 +154,7 @@ export function GameScreen({
     () => recalcularOcupacion(build.modelo, piezas),
     [build.modelo, piezas],
   );
-  const llena = cajaLlena(ocupacion);
+  const llena = cajaLlena(build.modelo, ocupacion);
   const cumplidos = useMemo(() => evaluarPedido(nivel.pedido, piezas), [nivel.pedido, piezas]);
   const pedidoOk = cumplidos.every(Boolean);
   const colores = useMemo(() => coloresPresentes(piezas), [piezas]);
@@ -376,7 +376,7 @@ export function GameScreen({
     }
     const res = puntuar(
       { perfectos, goshikiCompleto: colores.size === 5, elegante },
-      build.modelo.rects.length,
+      Math.max(1, build.modelo.rects.length),
     );
     if (esCarrera) {
       // Carrera: nada de ceremonia, la cocina no para. Suena el clic,

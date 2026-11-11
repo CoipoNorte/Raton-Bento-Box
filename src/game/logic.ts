@@ -52,6 +52,17 @@ export interface ModeloCaja {
   ocupacion: string[];
   /** Solución: celda → uid esperado, para las pistas. */
   solucion: Map<string, string>;
+  /**
+   * Modo Figuras: celdas que pertenecen a la silueta. Si falta, la caja
+   * es rectangular y todas las celdas son jugables.
+   */
+  mascara?: boolean[];
+}
+
+/** ¿Esta celda forma parte de la caja? (siempre sí si no hay máscara). */
+export function celdaJugable(modelo: ModeloCaja, x: number, y: number): boolean {
+  if (x < 0 || y < 0 || x >= modelo.cols || y >= modelo.rows) return false;
+  return modelo.mascara ? modelo.mascara[y * modelo.cols + x] : true;
 }
 
 export function clave(x: number, y: number): string {
@@ -67,6 +78,63 @@ export function construirNivel(nivel: NivelDef): {
   modelo: ModeloCaja;
   piezas: PiezaInst[];
 } {
+  // --- Modo Figuras: silueta libre con piezas de posición absoluta ---
+  if (nivel.mascara && nivel.piezasFigura) {
+    const { cols, rows, mascara } = nivel;
+    const comp = new Array<number>(cols * rows).fill(-1);
+    mascara.forEach((dentro, i) => {
+      if (dentro) comp[i] = 0;
+    });
+    // Un único «compartimento»: la figura entera. El rect es su marco,
+    // que sirve para el destello dorado al completarla.
+    const xs: number[] = [];
+    const ys: number[] = [];
+    mascara.forEach((dentro, i) => {
+      if (!dentro) return;
+      xs.push(i % cols);
+      ys.push(Math.floor(i / cols));
+    });
+    const rects = xs.length
+      ? [
+          {
+            x: Math.min(...xs),
+            y: Math.min(...ys),
+            w: Math.max(...xs) - Math.min(...xs) + 1,
+            h: Math.max(...ys) - Math.min(...ys) + 1,
+          },
+        ]
+      : [];
+
+    const piezas: PiezaInst[] = [];
+    const solucion = new Map<string, string>();
+    nivel.piezasFigura.forEach((p, i) => {
+      const inst: PiezaInst = {
+        uid: `f${i}`,
+        ingrediente: p.ing,
+        rotacion: p.rot,
+        x: null,
+        y: null,
+      };
+      // ox/oy ya son coordenadas absolutas en esta variante.
+      celdasEn(inst, p.ox, p.oy).forEach(([x, y]) => solucion.set(clave(x, y), inst.uid));
+      inst.rotacion = 0; // la bandeja siempre empieza sin rotar
+      piezas.push(inst);
+    });
+
+    return {
+      modelo: {
+        cols,
+        rows,
+        comp,
+        rects,
+        ocupacion: new Array<string>(cols * rows).fill(""),
+        solucion,
+        mascara,
+      },
+      piezas,
+    };
+  }
+
   const { cols, rows } = nivel;
   const comp = new Array<number>(cols * rows).fill(-1);
   const rects: ModeloCaja["rects"] = [];
@@ -147,7 +215,8 @@ export function puedeColocar(
   ocupacion: string[],
 ): boolean {
   for (const [x, y] of celdasEn(pieza, ax, ay)) {
-    if (x < 0 || y < 0 || x >= modelo.cols || y >= modelo.rows) return false;
+    // En el modo Figuras, fuera de la silueta no se puede colocar.
+    if (!celdaJugable(modelo, x, y)) return false;
     const actual = ocupacion[y * modelo.cols + x];
     if (actual !== "" && actual !== pieza.uid) return false;
   }
@@ -196,6 +265,8 @@ export function compartimentosCompletos(
     vistos.add(c);
     let completo = true;
     for (let j = 0; j < ocupacion.length; j++) {
+      // Las celdas fuera de la silueta no cuentan para completar.
+      if (modelo.mascara && !modelo.mascara[j]) continue;
       if (modelo.comp[j] === c && ocupacion[j] === "") {
         completo = false;
         break;
@@ -206,15 +277,25 @@ export function compartimentosCompletos(
   return [...llenos];
 }
 
-/** Porcentaje de relleno 0..100. */
-export function porcentajeRelleno(ocupacion: string[]): number {
-  const llenas = ocupacion.filter((c) => c !== "").length;
-  return Math.round((llenas / ocupacion.length) * 100);
+/** Porcentaje de relleno 0..100 (solo cuenta celdas jugables). */
+export function porcentajeRelleno(modelo: ModeloCaja, ocupacion: string[]): number {
+  let total = 0;
+  let llenas = 0;
+  for (let i = 0; i < ocupacion.length; i++) {
+    if (modelo.mascara && !modelo.mascara[i]) continue;
+    total++;
+    if (ocupacion[i] !== "") llenas++;
+  }
+  return total === 0 ? 0 : Math.round((llenas / total) * 100);
 }
 
-/** ¿Está la caja al 100 % sin huecos? */
-export function cajaLlena(ocupacion: string[]): boolean {
-  return ocupacion.every((c) => c !== "");
+/** ¿Está la caja al 100 % sin huecos? Ignora lo que está fuera de la silueta. */
+export function cajaLlena(modelo: ModeloCaja, ocupacion: string[]): boolean {
+  for (let i = 0; i < ocupacion.length; i++) {
+    if (modelo.mascara && !modelo.mascara[i]) continue;
+    if (ocupacion[i] === "") return false;
+  }
+  return true;
 }
 
 /** Colores goshiki presentes en las piezas colocadas. */

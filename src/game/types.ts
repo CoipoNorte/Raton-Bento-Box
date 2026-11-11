@@ -96,6 +96,15 @@ export interface NivelDef {
   tiempo: number;
   /** Pistas disponibles en este nivel. */
   pistas: number;
+  /**
+   * Modo Figuras: máscara de celdas jugables (cols×rows).
+   * true = celda de la silueta. Si falta, la caja es rectangular.
+   */
+  mascara?: boolean[];
+  /** Modo Figuras: piezas de la solución con posición ABSOLUTA. */
+  piezasFigura?: PiezaNivel[];
+  /** Modo Figuras: identidad de la silueta. */
+  figura?: { id: string; tema: string };
 }
 
 /** Resultado al cerrar el bento. */
@@ -119,6 +128,8 @@ export interface Progreso {
   mejorPuntosCarrera: number;
   /** Récord del modo infinito Bento Pop. */
   mejorPuntosPop: number;
+  /** Modo Figuras: estrellas conseguidas por silueta. */
+  figuras: Record<string, number>;
 }
 
 /** Modos de juego disponibles. */

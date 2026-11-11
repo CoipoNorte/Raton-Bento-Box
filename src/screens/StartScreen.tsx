@@ -9,6 +9,7 @@ import {
   Grid3X3,
   Lock as IconoCandado,
   Play,
+  Shapes,
   Star,
   Timer,
   Volume2,
@@ -29,9 +30,13 @@ interface Props {
   mejorRondaCarrera: number;
   popDesbloqueado: boolean;
   mejorPuntosPop: number;
+  figurasDesbloqueadas: boolean;
+  figurasHechas: number;
+  totalFiguras: number;
   onJugar: () => void;
   onCarrera: () => void;
   onBentoPop: () => void;
+  onFiguras: () => void;
   onPreferencias: (p: Preferencias) => void;
 }
 
@@ -43,9 +48,13 @@ export function StartScreen({
   mejorRondaCarrera,
   popDesbloqueado,
   mejorPuntosPop,
+  figurasDesbloqueadas,
+  figurasHechas,
+  totalFiguras,
   onJugar,
   onCarrera,
   onBentoPop,
+  onFiguras,
   onPreferencias,
 }: Props) {
   const vp = useViewport();
@@ -160,6 +169,28 @@ export function StartScreen({
               <span className="rounded-full bg-[#b8860b] px-2 py-0.5 text-[9px] text-white">{mejorPuntosPop.toLocaleString("es")}</span>
             )}
             {!popDesbloqueado && <IconoCandado size={13} />}
+          </motion.button>
+
+          {/* Modo Figuras: bentos con silueta, por temáticas */}
+          <motion.button
+            onClick={figurasDesbloqueadas ? onFiguras : undefined}
+            disabled={!figurasDesbloqueadas}
+            className={`flex h-12 items-center gap-2 rounded-full border-2 px-4 text-xs font-black transition-colors ${
+              figurasDesbloqueadas
+                ? "border-[#a78bc9] bg-[#a78bc9]/18 text-[#6f52a0]"
+                : "border-[#d8c8a4] bg-white/50 text-[#b3a586]"
+            }`}
+            whileHover={figurasDesbloqueadas ? { scale: 1.04 } : {}}
+            whileTap={figurasDesbloqueadas ? { scale: 0.94 } : {}}
+            title={figurasDesbloqueadas ? "Bentos con forma" : "Completa el nivel 4"}
+          >
+            <Shapes size={17} /> Figuras
+            {figurasDesbloqueadas && (
+              <span className="rounded-full bg-[#6f52a0] px-2 py-0.5 text-[9px] text-white">
+                {figurasHechas}/{totalFiguras}
+              </span>
+            )}
+            {!figurasDesbloqueadas && <IconoCandado size={13} />}
           </motion.button>
         </div>
 

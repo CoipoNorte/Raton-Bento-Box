@@ -66,6 +66,7 @@ const PROGRESO_INICIAL: Progreso = {
   mejorRondaCarrera: 0,
   mejorPuntosCarrera: 0,
   mejorPuntosPop: 0,
+  figuras: {},
 };
 const PREFS_INICIALES: Preferencias = { sonido: true, ambiente: false, modo: "zen" };
 
@@ -98,6 +99,20 @@ export function registrarCarrera(ronda: number, puntos: number): Progreso {
   const p = obtenerProgreso();
   p.mejorRondaCarrera = Math.max(p.mejorRondaCarrera ?? 0, ronda);
   p.mejorPuntosCarrera = Math.max(p.mejorPuntosCarrera ?? 0, puntos);
+  p.puntosTotales += puntos;
+  guardarProgreso(p);
+  return p;
+}
+
+/** Registra las estrellas de una figura (conserva el mejor resultado). */
+export function registrarFigura(
+  figuraId: string,
+  estrellas: number,
+  puntos: number,
+): Progreso {
+  const p = obtenerProgreso();
+  p.figuras = p.figuras ?? {};
+  p.figuras[figuraId] = Math.max(p.figuras[figuraId] ?? 0, estrellas);
   p.puntosTotales += puntos;
   guardarProgreso(p);
   return p;

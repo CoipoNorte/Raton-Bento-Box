@@ -69,6 +69,8 @@ export function BentoBox({
   const { borde, margen, ancho, alto } = medidasCaja(celda, modelo.cols, modelo.rows);
   const radioMarco = Math.round(celda * 0.34) + borde;
   const radioCubeta = Math.max(8, Math.round(celda * 0.2));
+  /** El modo Figuras dibuja la caja celda a celda, no como rectángulo. */
+  const esFigura = Boolean(modelo.mascara);
 
   const piezasColocadas = piezas.filter((p) => p.x !== null && p.y !== null);
   const piezaFantasma = fantasma ? piezas.find((p) => p.uid === fantasma.uid) : undefined;
@@ -81,42 +83,97 @@ export function BentoBox({
       className="relative shrink-0 select-none"
       style={{ width: ancho, height: alto }}
     >
-      {/* Marco de laca */}
+      {/* Marco de laca. En el modo Figuras el marco lo forma la silueta. */}
       <div
-        className="h-full w-full shadow-[0_18px_40px_-12px_rgba(60,20,10,0.45),inset_0_2px_0_rgba(255,255,255,0.15)]"
+        className={
+          esFigura
+            ? "h-full w-full"
+            : "h-full w-full shadow-[0_18px_40px_-12px_rgba(60,20,10,0.45),inset_0_2px_0_rgba(255,255,255,0.15)]"
+        }
         style={{
           padding: borde,
           borderRadius: radioMarco,
-          background: "linear-gradient(160deg, #7c241d 0%, #a03127 45%, #6d1f18 100%)",
+          background: esFigura
+            ? "transparent"
+            : "linear-gradient(160deg, #7c241d 0%, #a03127 45%, #6d1f18 100%)",
         }}
       >
         {/* Cubeta interior */}
         <div
           ref={tableroRef}
-          className="relative h-full w-full shadow-[inset_0_3px_10px_rgba(80,50,20,0.25)]"
+          className={
+            esFigura
+              ? "relative h-full w-full"
+              : "relative h-full w-full shadow-[inset_0_3px_10px_rgba(80,50,20,0.25)]"
+          }
           style={{
-            background: "#e6dcc4",
+            background: esFigura ? "transparent" : "#e6dcc4",
             padding: margen,
             borderRadius: radioCubeta,
           }}
         >
-          {/* Compartimentos */}
-          {modelo.rects.map((r, i) => (
-            <div
-              key={i}
-              className="absolute"
-              style={{
-                left: margen + r.x * celda + 2,
-                top: margen + r.y * celda + 2,
-                width: r.w * celda - 4,
-                height: r.h * celda - 4,
-                borderRadius: Math.max(5, Math.round(celda * 0.14)),
-                background: TINTES[i % TINTES.length],
-                boxShadow:
-                  "inset 0 2px 6px rgba(120,90,40,0.22), inset 0 -1px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(120,90,40,0.18)",
-              }}
-            />
-          ))}
+          {/* Silueta de laca: un halo por celda que se funde en un borde */}
+          {esFigura &&
+            modelo.mascara?.map((dentro, i) => {
+              if (!dentro) return null;
+              const x = i % modelo.cols;
+              const y = Math.floor(i / modelo.cols);
+              const grosor = Math.max(3, Math.round(celda * 0.16));
+              return (
+                <div
+                  key={`halo${i}`}
+                  className="absolute"
+                  style={{
+                    left: margen + x * celda - grosor,
+                    top: margen + y * celda - grosor,
+                    width: celda + grosor * 2,
+                    height: celda + grosor * 2,
+                    borderRadius: Math.max(6, Math.round(celda * 0.3)),
+                    background: "linear-gradient(160deg,#a4382c,#711f19)",
+                    filter: "drop-shadow(0 10px 16px rgba(60,20,10,.35))",
+                  }}
+                />
+              );
+            })}
+          {/* Compartimentos (caja rectangular) o silueta (modo Figuras) */}
+          {modelo.mascara
+            ? modelo.mascara.map((dentro, i) => {
+                if (!dentro) return null;
+                const x = i % modelo.cols;
+                const y = Math.floor(i / modelo.cols);
+                return (
+                  <div
+                    key={i}
+                    className="absolute"
+                    style={{
+                      left: margen + x * celda,
+                      top: margen + y * celda,
+                      width: celda,
+                      height: celda,
+                      // Tablero de ajedrez suave: da textura a la silueta.
+                      background: (x + y) % 2 === 0 ? "#f5eeda" : "#efe6cf",
+                      boxShadow:
+                        "inset 0 1px 3px rgba(120,90,40,0.16), inset 0 -1px 0 rgba(255,255,255,0.45)",
+                    }}
+                  />
+                );
+              })
+            : modelo.rects.map((r, i) => (
+                <div
+                  key={i}
+                  className="absolute"
+                  style={{
+                    left: margen + r.x * celda + 2,
+                    top: margen + r.y * celda + 2,
+                    width: r.w * celda - 4,
+                    height: r.h * celda - 4,
+                    borderRadius: Math.max(5, Math.round(celda * 0.14)),
+                    background: TINTES[i % TINTES.length],
+                    boxShadow:
+                      "inset 0 2px 6px rgba(120,90,40,0.22), inset 0 -1px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(120,90,40,0.18)",
+                  }}
+                />
+              ))}
 
           {/* Destellos dorados al completar compartimentos */}
           {destellos.map((d) => {

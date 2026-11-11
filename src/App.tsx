@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { generarNivelCarrera } from "./game/generator";
+import { TOTAL_FIGURAS, nivelDeFigura } from "./game/figuras";
 import { TOTAL_NIVELES, nivelPorId } from "./game/levels";
 import {
   guardarPreferencias,
@@ -14,6 +15,7 @@ import {
   obtenerProgreso,
   registrarCarrera,
   registrarBentoPop,
+  registrarFigura,
   registrarEstrellas,
 } from "./game/storage";
 import { ambiente, inicializarAudio, setSilencio } from "./game/sound";
@@ -22,6 +24,7 @@ import type { Preferencias, Progreso } from "./game/types";
 
 import { CareerEnd } from "./screens/CareerEnd";
 import { BentoPopScreen } from "./screens/BentoPopScreen";
+import { FiguraSelect } from "./screens/FiguraSelect";
 import { GameScreen } from "./screens/GameScreen";
 import { LevelSelect } from "./screens/LevelSelect";
 import { StartScreen } from "./screens/StartScreen";
@@ -35,6 +38,8 @@ type Pantalla =
   | { tipo: "juego"; nivelId: number }
   | { tipo: "carrera" }
   | { tipo: "bentoPop" }
+  | { tipo: "figuras" }
+  | { tipo: "figura"; figuraId: string }
   | { tipo: "carreraFin"; rondas: number; puntos: number; esRecord: boolean };
 
 /** Estado vivo de una partida de Carrera. */
@@ -85,6 +90,12 @@ export default function App() {
     setCarrera({ ronda: 1, puntos: 0, tiempo: primera.tiempo, semilla });
     setPantalla({ tipo: "carrera" });
   }, []);
+
+  /** Figura en juego: se tesela una vez y queda memorizada. */
+  const nivelFigura = useMemo(
+    () => (pantalla.tipo === "figura" ? nivelDeFigura(pantalla.figuraId) : null),
+    [pantalla],
+  );
 
   /** Caja procedural de la ronda actual (estable mientras no cambie). */
   const nivelCarrera = useMemo(
@@ -144,6 +155,7 @@ export default function App() {
   const servicioDesbloqueado = progreso.nivelMax >= 4;
   const carreraDesbloqueada = progreso.nivelMax >= 3;
   const popDesbloqueado = progreso.nivelMax >= 4;
+  const figurasDesbloqueadas = progreso.nivelMax >= 5;
 
   return (
     <div className="h-dvh w-full overflow-hidden bg-[#f7f1e3] font-sans">
@@ -156,9 +168,15 @@ export default function App() {
           mejorRondaCarrera={progreso.mejorRondaCarrera ?? 0}
           popDesbloqueado={popDesbloqueado}
           mejorPuntosPop={progreso.mejorPuntosPop ?? 0}
+          figurasDesbloqueadas={figurasDesbloqueadas}
+          figurasHechas={
+            Object.values(progreso.figuras ?? {}).filter((e) => e > 0).length
+          }
+          totalFiguras={TOTAL_FIGURAS}
           onJugar={() => setPantalla({ tipo: "niveles" })}
           onCarrera={empezarCarrera}
           onBentoPop={() => setPantalla({ tipo: "bentoPop" })}
+          onFiguras={() => setPantalla({ tipo: "figuras" })}
           onPreferencias={actualizarPrefs}
         />
       )}
@@ -232,6 +250,31 @@ export default function App() {
           mejor={progreso.mejorPuntosPop ?? 0}
           onSalir={() => setPantalla({ tipo: "inicio" })}
           onFin={(puntos) => setProgreso(registrarBentoPop(puntos))}
+        />
+      )}
+
+      {pantalla.tipo === "figuras" && (
+        <FiguraSelect
+          progreso={progreso}
+          onElegir={(figuraId) => setPantalla({ tipo: "figura", figuraId })}
+          onVolver={() => setPantalla({ tipo: "inicio" })}
+        />
+      )}
+
+      {pantalla.tipo === "figura" && nivelFigura && (
+        <GameScreen
+          key={`figura-${pantalla.figuraId}`}
+          nivel={nivelFigura}
+          prefs={prefs}
+          // Las figuras son coleccionismo tranquilo: siempre sin reloj.
+          modoJuego="zen"
+          esUltimo
+          onSalir={() => setPantalla({ tipo: "figuras" })}
+          onCompletado={(_, estrellas, puntos) =>
+            setProgreso(registrarFigura(pantalla.figuraId, estrellas, puntos))
+          }
+          onSiguiente={() => setPantalla({ tipo: "figuras" })}
+          onAlternarSonido={() => setPrefs((p) => ({ ...p, sonido: !p.sonido }))}
         />
       )}
     </div>

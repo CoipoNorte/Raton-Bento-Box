@@ -4,7 +4,7 @@
 ![Build](https://img.shields.io/badge/Vite_7-Tailwind_4-a855f7?logo=vite&logoColor=white)
 ![Motion](https://img.shields.io/badge/Framer_Motion-Lucide-f472b6)
 ![Audio](https://img.shields.io/badge/WebAudio-100%25_sintetizado-f2c14e)
-![Niveles](https://img.shields.io/badge/72_niveles-+_2_modos_infinitos-a03127)
+![Niveles](https://img.shields.io/badge/72_niveles-+_44_figuras-a03127)
 ![Deploy](https://img.shields.io/badge/GitHub_Pages-listo-2ea44f?logo=github)
 
 Un juego acogedor y ultra relajante de organización donde preparas cajas bento encajando ingredientes como un rompecabezas, buscando el **encaje perfecto sin huecos**, con sonido **ASMR WebAudio sintetizado** y acompañado por **Mochi, el simpático ratoncito chef**.
@@ -59,6 +59,7 @@ Un juego acogedor y ultra relajante de organización donde preparas cajas bento 
 | ⏱️ **Servicio del día** | Los 72 niveles contrarreloj, con barra ultrafina de 5 px pegada al borde superior que se vuelve roja en los últimos 10 segundos. | Nivel 3 |
 | ♾️ **Carrera** | **Cajas infinitas generadas proceduralmente.** El reloj nunca se detiene: cada bento servido hereda el tiempo sobrante más un bonus que mengua con las rondas. Las cajas crecen de 4×3 hasta 8×7 y se guardan los récords de bentos servidos y de puntos. | Nivel 2 |
 | 🧩 **Bento Pop** | Puzzle contrarreloj con **caja que crece**: empiezas en 2×2 y la caja gana una fila y una columna por cada lado (2×2 → 4×4 → 6×6 → 8×8) conforme sirves líneas. Arrancas con **2:59**; cada línea suma **+15 s** y el cuadro dorado central **+2 s**. | Nivel 3 |
+| 🎨 **Figuras** | **Álbum de 44 bentos con silueta libre**: triángulo, estrella, círculo, gatito, dinosaurio, torii, mandala… Organizados en 6 temáticas que se abren al completar 2 figuras de la anterior. Sin reloj: coleccionismo tranquilo. | Nivel 4 |
 
 ### 🧩 Bento Pop
 
@@ -111,6 +112,25 @@ El generador (`src/game/generator.ts`) **nunca produce una caja imposible**, por
 
 Con la misma semilla sale exactamente la misma caja, y por eso los **Retos del chef** son estables partida tras partida.
 
+### 🎨 Modo Figuras
+
+Bentos que **no son rectángulos**: cada caja es una silueta con forma propia y hay que rellenarla entera, sin que sobre ni falte una celda.
+
+| Temática | Figuras | Ejemplos |
+| --- | --- | --- |
+| 🔷 Geometría | 8 | Rectángulo, triángulo, rombo, círculo, hexágono, cruz, estrella |
+| 🌿 Naturaleza | 8 | Brote, sol, hoja, flor, nube, pino, montaña, sakura |
+| 🐾 Animales | 8 | Huevo, pájaro, pez, gatito, conejo, perrito, mariposa, **dinosaurio** |
+| 🎐 Festival | 7 | Regalo, farolillo, abanico, corazón, cometa, campana, fuego artificial |
+| ⛩️ Japón | 7 | Onigiri gigante, daruma, torii, Monte Fuji, pagoda, koinobori, bonsái |
+| 🪷 Mandalas | 6 | Anillo, rueda, mandala cruz, loto, copo, laberinto |
+
+- Las siluetas se definen como **arte ASCII** en : añadir una figura nueva es dibujarla con  y , sin tocar la lógica.
+- El teselado de una forma arbitraria se resuelve con **backtracking** sobre las celdas libres, probando primero las piezas grandes. Como existen piezas 1×1, toda silueta tiene solución garantizada (de media solo el **12 %** de las piezas son individuales).
+- Los mandalas incluyen **huecos interiores**: el loto tiene corazón vacío y el laberinto son dos anillos concéntricos.
+- Cada figura se tesela una sola vez y queda memorizada; la carta se dibuja directamente del arte ASCII, sin coste.
+- Sin reloj y con 3 pistas: es el modo para desconectar y completar el álbum.
+
 ---
 
 ## 🐭 La Mascota: Mochi el Ratón Chef
@@ -135,34 +155,6 @@ Dibujado 100% en SVG vectorial interactivo, con proporciones chibi:
 
 ---
 
-## 🚀 Despliegue automático (`deploy.bat`)
-
-El script es **autocontenido** y se ejecuta con doble clic en Windows. Realiza en orden:
-
-1. Comprueba Node.js y npm.
-2. Verifica Git, inicializa el repositorio y apunta `origin` a `https://github.com/CoipoNorte/Raton-Bento-Box.git` en la rama `main`.
-3. Crea el `.gitignore` si falta.
-4. Añade los scripts `predeploy` y `deploy` al `package.json`.
-5. Configura `base: '/Raton-Bento-Box/'` en `vite.config.ts`.
-6. Ejecuta `npm install` e instala `gh-pages`.
-7. Compila con `npm run build` y valida la carpeta `dist`.
-8. Hace `git add -A` y commit automático solo si hay cambios.
-9. Sube el código con `git push origin main`.
-10. Publica la web con `npm run deploy` en la rama `gh-pages`.
-
-> **Solo la primera vez en GitHub:** entra en `Settings` → `Pages`, elige *Deploy from a branch*, rama `gh-pages`, carpeta `/ (root)` y guarda. Después recarga con `Ctrl+F5`.
-
-### Desarrollo local
-
-```bash
-npm install     # instalar dependencias
-npm run dev     # servidor de desarrollo
-npm run build   # compilar para producción
-npm run preview # previsualizar la build
-```
-
----
-
 ## 📁 Estructura del proyecto
 
 ```
@@ -181,6 +173,7 @@ npm run preview # previsualizar la build
     ├── main.tsx           # Punto de entrada de React
     ├── game/
     │   ├── balance.ts     # Puntuaciones, bonos y umbrales de estrellas
+    │   ├── figuras.ts     # 44 siluetas en arte ASCII y teselado por backtracking
     │   ├── bentoPop.ts    # Caja creciente, líneas, centro, reloj y bandejas
     │   ├── generator.ts   # Cajas procedurales del modo Carrera y la campaña
     │   ├── ingredients.ts # Catálogo de 13 ingredientes con formas y goshiki
@@ -207,6 +200,7 @@ npm run preview # previsualizar la build
     │   └── Sakura.tsx     # Partículas de pétalos de cerezo
     └── screens/
         ├── BentoPopScreen.tsx # Modo contrarreloj de caja creciente
+        ├── FiguraSelect.tsx # Álbum de siluetas por temáticas
         ├── CareerEnd.tsx    # Resumen y récords del modo Carrera
         ├── GameScreen.tsx   # Pantalla principal responsive de campaña/Carrera
         ├── LevelSelect.tsx  # Carta scrolleable de los 72 bentos
